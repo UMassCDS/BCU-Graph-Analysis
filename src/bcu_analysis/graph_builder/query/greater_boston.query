@@ -1,5 +1,10 @@
 [timeout:1800][out:json];
-area["wikipedia"="en:Boston"]->.search_area;
+(
+    area["wikipedia"="en:Boston"];
+    area["wikipedia"="en:Cambridge, Massachusetts"];
+    area["wikipedia"="en:Somerville, Massachusetts"];
+    area["wikipedia"="en:Brookline, Massachusetts"];
+)->.search_area;
 .search_area out body;
 
 (
