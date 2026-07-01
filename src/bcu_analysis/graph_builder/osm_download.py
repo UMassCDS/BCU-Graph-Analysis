@@ -7,14 +7,14 @@ import osmnx as ox
 
 useragent = {'User-Agent': 'bcu-labs'}
 
-dataFolder = 'data'
+dataFolder = '/work/pi_plunkett_umass_edu/bcu/data'
 queryFolder = 'src/bcu_analysis/graph_builder/query'
 
 overpass_url = "https://overpass.kumi.systems/api/interpreter"
 
 OVERWRITE = False
 
-def build_tag_query(region, key, value):
+def build_tag_query(region, cities):
     global OVERWRITE
     filepath = Path(queryFolder) / (region + '.query')
     filepath.parent.mkdir(exist_ok=True)
@@ -22,9 +22,15 @@ def build_tag_query(region, key, value):
         print(f"{region} query already exists")
     else:
         OVERWRITE = True
+        # Union the area for every city into a single search_area set.
+        area_lines = ''.join(
+            f'    area["{key}"="{value}"];\n' for _, key, value in cities
+        )
         with filepath.open(mode='w') as f:
             f.write('[timeout:1800][out:json];\n')
-            f.write(f'area["{key}"="{value}"]->.search_area;\n')
+            f.write('(\n')
+            f.write(area_lines)
+            f.write(')->.search_area;\n')
             f.write('.search_area out body;\n')
             f.write("""
 (
@@ -42,7 +48,7 @@ def download_tags(region):
     '''
     global OVERWRITE
     queryFilepath = os.path.join(queryFolder, f'{region}.query')
-    dataFilepath = os.path.join(dataFolder, f'{region}_1.json')
+    dataFilepath = os.path.join(dataFolder, f'raw/osm/{region}_tags.json')
 
     if os.path.exists(dataFilepath) and (OVERWRITE is False):
         print(f'OSM data already downloaded for {region}')
@@ -72,7 +78,7 @@ def extract_tags(region):
     '''
     global OVERWRITE
     # load the data
-    wayTagsCSV = os.path.join(dataFolder, f'{region}_2_way_tags.csv')
+    wayTagsCSV = os.path.join(dataFolder, f'raw/osm/{region}_way_tags.csv')
 
     if os.path.exists(wayTagsCSV) and (OVERWRITE is False):
         way_tags_series = pd.read_csv(wayTagsCSV, index_col=0)['tag']
@@ -80,7 +86,7 @@ def extract_tags(region):
     else:
         OVERWRITE = True
         print(f'Finding way tags for {region}...')
-        with open(os.path.join(dataFolder, f'{region}_1.json'), 'r') as f:
+        with open(os.path.join(dataFolder, f'raw/osm/{region}_tags.json'), 'r') as f:
             data = json.load(f)
 
         # make a dataframe of tags
@@ -114,9 +120,12 @@ def extract_tags(region):
     ox.settings.osm_xml_way_tags = way_tags
     print('Way tags added to osmnx settings.')
 
-def download_graph(region):
+def download_graph(region, places):
     '''
-    Download data for a given region
+    Download data for a given region.
+
+    `places` is a list of place names (e.g. ["Boston, Massachusetts", ...]);
+    graph_from_place merges them all into a single graph saved under `region`.
     '''
     global OVERWRITE
     # create a filter to download selected data
@@ -130,7 +139,7 @@ def download_graph(region):
                 '["service"!="parking_aisle"]')
 
     # check if data has already been downloaded; if not, download
-    filepath = f"{dataFolder}/{region}_3.graphml"
+    filepath = f"{dataFolder}/raw/osm/{region}_raw.graphml"
     if os.path.exists(filepath) and (OVERWRITE is False):
         # load graph
         print(f"Loading saved graph for {region}")
@@ -139,7 +148,7 @@ def download_graph(region):
         OVERWRITE = True
         print(f"Downloading {region} data (this may take some time)...")
         G = ox.graph_from_place(
-            f"{region}, Massachusetts",
+            places,
             retain_all=True,
             truncate_by_edge=True,
             simplify=False,
@@ -159,10 +168,3 @@ def download_graph(region):
     print(f'{gdf_nodes.shape=}')
 
     return gdf_nodes, gdf_edges
-
-if __name__ == "__main__":
-    city = ['Boston', 'wikipedia', 'en:Boston']
-    build_tag_query(*city)
-    download_tags(city[0])
-    extract_tags(city[0])
-    download_graph(city[0])
