@@ -66,10 +66,7 @@ for _, row in low_pop.iterrows():
         weight=0,
         fill=True,
         fill_opacity=0.35,
-        popup=(
-            f"Node ID: {row.get('node_id', '')}<br>"
-            f"Assigned population: {row['assigned_population']:.4f}"
-        ),
+        popup=(f"Node ID: {row.get('node_id', '')}<br>Assigned population: {row['assigned_population']:.4f}"),
     ).add_to(m)
 
 # Larger assigned nodes, clustered for usability.
@@ -78,7 +75,7 @@ cluster = MarkerCluster(name="High assigned population nodes").add_to(m)
 for _, row in high_pop.iterrows():
     pop = float(row["assigned_population"])
 
-    radius = min(18, max(4, pop ** 0.5 / 2))
+    radius = min(18, max(4, pop**0.5 / 2))
 
     folium.CircleMarker(
         location=[row.geometry.y, row.geometry.x],
@@ -86,10 +83,7 @@ for _, row in high_pop.iterrows():
         weight=1,
         fill=True,
         fill_opacity=0.65,
-        popup=(
-            f"Node ID: {row.get('node_id', '')}<br>"
-            f"Assigned population: {pop:.2f}"
-        ),
+        popup=(f"Node ID: {row.get('node_id', '')}<br>Assigned population: {pop:.2f}"),
     ).add_to(cluster)
 
 print("Adding top 25 highest-population nodes...")
@@ -100,11 +94,7 @@ for _, row in top_nodes.iterrows():
 
     folium.Marker(
         location=[row.geometry.y, row.geometry.x],
-        popup=(
-            f"<b>Top assigned node</b><br>"
-            f"Node ID: {row.get('node_id', '')}<br>"
-            f"Assigned population: {pop:.2f}"
-        ),
+        popup=(f"<b>Top assigned node</b><br>Node ID: {row.get('node_id', '')}<br>Assigned population: {pop:.2f}"),
         tooltip=f"{pop:.1f} people",
     ).add_to(m)
 
@@ -118,4 +108,3 @@ print("Saved:", OUTPUT_MAP)
 print("Assigned nodes shown:", len(nodes))
 print("Assigned tracts shown:", len(tracts))
 print("Top node population:", nodes["assigned_population"].max())
-

@@ -53,9 +53,7 @@ allocation.to_csv(OUTPUT_ALLOC_CSV, index=False)
 allocation.to_parquet(OUTPUT_ALLOC_PARQUET, index=False)
 
 assigned_tract_ids = set(allocation["GEOID"].astype(str))
-assigned_tract_population = tracts[
-    tracts["GEOID"].astype(str).isin(assigned_tract_ids)
-]["population"].sum()
+assigned_tract_population = tracts[tracts["GEOID"].astype(str).isin(assigned_tract_ids)]["population"].sum()
 
 print("Done.")
 print("Projected node CRS:", nodes_with_pop.crs)

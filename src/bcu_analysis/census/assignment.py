@@ -92,9 +92,7 @@ def assign_population_to_nodes_by_tract_area(
         region_boundary = None
 
     else:
-        raise ValueError(
-            "tract_filter_method must be one of: 'convex_hull', 'envelope', or 'none'."
-        )
+        raise ValueError("tract_filter_method must be one of: 'convex_hull', 'envelope', or 'none'.")
 
     if region_boundary is not None:
         tracts = tracts[tracts.geometry.intersects(region_boundary)].copy()
@@ -125,11 +123,7 @@ def assign_population_to_nodes_by_tract_area(
         if tract_area == 0:
             continue
 
-        candidate_geom = (
-            tract_geom.buffer(candidate_buffer_m)
-            if candidate_buffer_m > 0
-            else tract_geom
-        )
+        candidate_geom = tract_geom.buffer(candidate_buffer_m) if candidate_buffer_m > 0 else tract_geom
 
         candidate_idx = list(node_sindex.query(candidate_geom, predicate="intersects"))
         tract_nodes = nodes.iloc[candidate_idx].copy()
@@ -147,11 +141,13 @@ def assign_population_to_nodes_by_tract_area(
         tract_rows = []
 
         if len(tract_nodes) == 1:
-            tract_rows.append({
-                "node_id": tract_nodes.iloc[0]["node_id"],
-                tract_id_col: tract[tract_id_col],
-                "area_share": 1.0,
-            })
+            tract_rows.append(
+                {
+                    "node_id": tract_nodes.iloc[0]["node_id"],
+                    tract_id_col: tract[tract_id_col],
+                    "area_share": 1.0,
+                }
+            )
 
         else:
             points = list(tract_nodes.geometry)
@@ -187,11 +183,13 @@ def assign_population_to_nodes_by_tract_area(
                 area_by_node[node_id] = area_by_node.get(node_id, 0.0) + clipped_area
 
             for node_id, clipped_area in area_by_node.items():
-                tract_rows.append({
-                    "node_id": node_id,
-                    tract_id_col: tract[tract_id_col],
-                    "area_share": clipped_area / tract_area,
-                })
+                tract_rows.append(
+                    {
+                        "node_id": node_id,
+                        tract_id_col: tract[tract_id_col],
+                        "area_share": clipped_area / tract_area,
+                    }
+                )
 
         for row in tract_rows:
             row["raw_area_share"] = row["area_share"]
@@ -218,11 +216,7 @@ def assign_population_to_nodes_by_tract_area(
 
     allocation = allocation.sort_values([tract_id_col, "node_id"]).reset_index(drop=True)
 
-    node_population = (
-        allocation
-        .groupby("node_id", as_index=False)["assigned_population"]
-        .sum()
-    )
+    node_population = allocation.groupby("node_id", as_index=False)["assigned_population"].sum()
 
     output = nodes.merge(node_population, on="node_id", how="left")
     output["assigned_population"] = output["assigned_population"].fillna(0)
