@@ -49,6 +49,8 @@ Typical generated outputs include:
 
 Large generated outputs should not be committed to Git unless the team decides to track data with Git LFS or DVC.
 
+The runnable census workflow files live under `src/bcu_analysis/census/`.
+
 ## Diagnostics
 
 The allocation table includes:
