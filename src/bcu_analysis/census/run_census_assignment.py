@@ -3,7 +3,7 @@ import geopandas as gpd
 
 from bcu_analysis.census.assignment import assign_population_to_nodes_by_tract_area
 
-GRAPH_PATH = "data/Boston_3.graphml"
+GRAPH_PATH = "data/processed/osm/greater_boston_cost_simplified.graphml"
 TRACT_PATH = "data/census/ma_tracts_population.geojson"
 
 OUTPUT_NODES_GPKG = "data/census/Boston_nodes_with_population.gpkg"

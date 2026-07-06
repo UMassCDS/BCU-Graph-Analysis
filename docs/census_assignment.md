@@ -6,7 +6,7 @@ This workflow assigns census tract population to graph nodes using deterministic
 
 The workflow uses:
 
-- A graph file, such as `data/Boston_3.graphml`
+- A processed graph file, currently `data/processed/osm/greater_boston_cost_simplified.graphml`
 - Official Massachusetts 2024 Census/TIGER tract geometries
 - ACS population data
 - A processed tract population GeoJSON with population joined to tract geometries
@@ -38,6 +38,36 @@ The final Boston run used:
 - `min_region_overlap_share=0.50`
 - calculation CRS: `EPSG:26986`
 - web output CRS: `EPSG:4326`
+
+
+## Processed graph choice
+
+The workflow was tested with both the older `Boston_3.graphml` graph and the processed simplified graph.
+
+The processed simplified graph is now preferred because it preserves the same assigned tract count and population total while using fewer graph nodes and producing fewer allocation rows.
+
+Comparison:
+
+- Old `Boston_3.graphml`
+  - nodes: 241,429
+  - assigned nodes: 232,039
+  - allocation rows: 267,991
+  - assigned tracts: 206
+  - total assigned population: 666,442.0
+
+- New `greater_boston_cost_simplified.graphml`
+  - nodes: 97,850
+  - assigned nodes: 63,652
+  - allocation rows: 76,488
+  - assigned tracts: 206
+  - total assigned population: 666,442.0
+
+Validation with the processed simplified graph:
+
+- negative populations: 0
+- one-node tracts: 0
+- bad area-share sums: 0
+- coverage ratio approximately 1.0
 
 ## Outputs
 
