@@ -8,7 +8,7 @@ import yaml
 import pandas as pd
 import numpy as np
 
-intermediate_path = f"/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
+intermediate_path = "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
 SIDES = ['left', 'right']
 DIRS = ['fwd', 'rev']
 
