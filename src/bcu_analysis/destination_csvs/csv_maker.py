@@ -3,13 +3,10 @@ import os
 from pathlib import Path
 import requests
 import geopandas as gpd
-import osmnx as ox
 import pandas as pd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
-from shapely.geometry import shape
 
-ox.settings.use_cache = False
 useragent = {'User-Agent': 'bcu-labs'}
 dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
 queryFolder = 'src/bcu_analysis/destination_csvs/query'
@@ -40,7 +37,7 @@ def build_query(region, key, value, type, tags):
 def download_osm(region, type):
     global OVERWRITE
     queryFilepath = os.path.join(queryFolder, f'{region}{type}Destinations.query')
-    dataFilepath = os.path.join(dataFolder, f'{region}{type}Destinations_1.json')
+    dataFilepath = os.path.join(dataFolder, f'{region}_{type}_Destinations.json')
     if os.path.exists(dataFilepath) and (OVERWRITE is False):
         print(f'OSM data already downloaded for {region}')
     else:
@@ -59,7 +56,7 @@ def download_osm(region, type):
 def generate_coordinate_table(region, type):
 
     # Reads the json file and creates the csv file that will contain the coordinate table
-    json_filepath = Path(dataFolder) / f'{region}{type}Destinations_1.json'
+    json_filepath = Path(dataFolder) / f'{region}_{type}_Destinations.json'
     csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv'
     
     with open(json_filepath, 'r', encoding='utf-8') as f:
