@@ -1,4 +1,5 @@
 import pandas as pd
+from pyproj import CRS
 from shapely.geometry import MultiPoint
 from shapely.ops import voronoi_diagram
 from scipy.spatial import cKDTree
@@ -76,11 +77,21 @@ def assign_population_to_nodes_by_tract_area(
 
     nodes["node_id"] = nodes.index
 
-    nodes = nodes.to_crs(projected_crs)
-    tracts = tracts.to_crs(projected_crs)
+    target_crs = CRS.from_user_input(projected_crs)
+
+    if nodes.crs != target_crs:
+        nodes = nodes.to_crs(target_crs)
+
+    if tracts.crs != target_crs:
+        tracts = tracts.to_crs(target_crs)
 
     if region_boundary_gdf is not None:
-        region_boundary = region_boundary_gdf.to_crs(projected_crs).geometry.union_all()
+        region_boundary = region_boundary_gdf.copy()
+
+        if region_boundary.crs != target_crs:
+            region_boundary = region_boundary.to_crs(target_crs)
+
+        region_boundary = region_boundary.geometry.union_all()
 
     elif tract_filter_method == "convex_hull":
         region_boundary = nodes.geometry.union_all().convex_hull
@@ -92,7 +103,10 @@ def assign_population_to_nodes_by_tract_area(
         region_boundary = None
 
     else:
-        raise ValueError("tract_filter_method must be one of: 'convex_hull', 'envelope', or 'none'.")
+        raise ValueError(
+            "tract_filter_method must be one of: "
+            "'convex_hull', 'envelope', or 'none'."
+        )
 
     if region_boundary is not None:
         tracts = tracts[tracts.geometry.intersects(region_boundary)].copy()
