@@ -271,15 +271,22 @@ def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=Fa
     download_osm(region, type)
     generate_coordinate_table(region, type)
     if removeAirport:
-        remove_logan_airport_shops_inplace(f"data/{region}{type}_Coordinates.csv")
+        remove_logan_airport_shops_inplace(f"{dataFolder}/{region}{type}_Coordinates.csv")
     if removeIsland:
         remove_island_locations_from_csv(region, type)
 
 if __name__ == '__main__':
-    city = ['Boston', 'wikipedia', 'en:Boston']
+    ## Uncomment as needed
+    #city = ['Boston', 'wikipedia', 'en:Boston']
+    #city = ['Cambridge', 'wikipedia', 'en:Cambridge, Massachusetts']
+    #city = ['Brookline', 'wikipedia', 'en:Brookline, Massachusetts']
+    #city = ['Somerville', 'wikipedia', 'en:Somerville, Massachusetts']
+
+    ## Uncomment as needed. Can typically only take 2 function calls at a time. 
     #main(*city, 'Store', ['shop=supermarket', 'shop=convenience'], removeIsland=True, removeAirport=True, rebuild=True)
     #main(*city, 'Greenspace', ['leisure=park'],removeIsland=True, removeAirport=False, rebuild=True)
     #main(*city, 'Healthcare', ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
+    ### Offices are now found a different way
+    ###main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
     #main(*city, 'TransitStation', ['public_transport=station', 'highway=bus_stop'], removeIsland=True, removeAirport=False, rebuild=True)
     #main(*city, 'School', ['amenity=school'], removeIsland=True, removeAirport=False, rebuild=True)
