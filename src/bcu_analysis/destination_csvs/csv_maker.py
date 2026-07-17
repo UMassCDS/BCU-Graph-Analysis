@@ -47,7 +47,8 @@ def download_osm(region, type):
             overpass_query = f.read()
         print(f'Downloading OSM map data for {region}...')
         # Attempts overpass api up to 10 times 
-        for i in range(10):
+        max_attempts = 10
+        for i in range(max_attempts):
             try: 
                 response = requests.get(overpass_url, headers=useragent, params={'data': overpass_query}, timeout=300)
                 response.raise_for_status()
@@ -58,12 +59,13 @@ def download_osm(region, type):
                 print(f'Saved {region} map data')
                 break
             except requests.exceptions.HTTPError as err:
-                if i==9:
+                if i==max_attempts-1:
+                        print("Maximum number of attempts reached")
                         raise err 
                 elif err.response.status_code == 504:
                     print("The Overpass server took too long to respond (504 Gateway Timeout).")
                     print("Attempting Dowload again")
-                    print(f"{9-i} attempts left")
+                    print(f"{max_attempts-1-i} attempts left")
                     time.sleep(5)
                     continue
                 elif err.response.status_code == 429:
@@ -71,7 +73,7 @@ def download_osm(region, type):
                     print("Waiting to try again.")
                     time.sleep(10)
                     print("Attempting Download again")
-                    print(f"{9-i} attempts left")
+                    print(f"{max_attempts-1-i} attempts left")
                     continue
                 else:
                     raise err
