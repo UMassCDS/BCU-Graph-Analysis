@@ -131,7 +131,7 @@ def generate_coordinate_table(region, type):
         elif type == 'Office':
             specific = 'office'
         else:
-            raise KeyError("A 'type' tag is not defined for this destination type. Look at line 79.")
+            raise KeyError("A 'type' tag is not defined for this destination type.")
         
         # Handle standalone coordinates (extracts the latitude and longitude point for each node and stores it in the 'nodes_list')
         if el.get('type') == 'node':
