@@ -1,23 +1,22 @@
-import os
-import numpy as np
 import pandas as pd
 import osmnx as ox
+from pathlib import Path
 
 import lts_functions as lts
-
-from config import DATA_FOLDER, RAW_OSM_DIR, PROCESSED_OSM_DIR, PARAMETERS_DIR
+# Import from config.py
+from config import DATA_FOLDER, RAW_OSM_DIR, PROCESSED_OSM_DIR, PARAMETERS_DIR, NO_ACCESS_WEIGHT, PROFILES_TO_APPLY
 
 OVERWRITE = False
-NO_ACCESS_WEIGHT = 100.0
 
 def lts_edges(region, gdf_edges):
     '''
     Calculate the LTS for all edges
     '''
     global OVERWRITE
-    filepathAll = f"{PROCESSED_OSM_DIR}/{region}_all_lts.csv"
+    
+    filepathAll = Path(PROCESSED_OSM_DIR) / f"{region}_all_lts.csv"
 
-    if os.path.exists(filepathAll) and (OVERWRITE is False):
+    if filepathAll.exists() and (OVERWRITE is False):
         print(f"Loading LTS for {region}")
         all_lts = lts.read_lts_csv(filepathAll)
     else:
@@ -46,15 +45,15 @@ def lts_edges(region, gdf_edges):
     return all_lts
 
 def build_cost_graph(city):
-    graph_path = f"{RAW_OSM_DIR}/{city}_raw.graphml"
-    lts_path = f"{PROCESSED_OSM_DIR}/{city}_all_lts.csv"
-    cost_csv_path = f"{PARAMETERS_DIR}/Cost first draft.csv" 
+    graph_path = Path(RAW_OSM_DIR) / f"{city}_raw.graphml"
+    lts_path = Path(PROCESSED_OSM_DIR) / f"{city}_all_lts.csv"
+    cost_csv_path = Path(PARAMETERS_DIR) / "Cost first draft.csv" 
 
-    if not os.path.exists(graph_path):
+    if not graph_path.exists():
         raise FileNotFoundError(f"Graph not found: {graph_path}")
-    if not os.path.exists(lts_path):
+    if not lts_path.exists():
         raise FileNotFoundError(f"LTS data not found: {lts_path}")
-    if not os.path.exists(cost_csv_path):
+    if not cost_csv_path.exists():
         raise FileNotFoundError(f"Cost CSV not found: {cost_csv_path}")
 
     print(f"Loading graph for {city}")
@@ -65,12 +64,6 @@ def build_cost_graph(city):
     
     print("Loading dynamic profile costs...")
     df_costs = pd.read_csv(cost_csv_path)
-
-    profiles_to_apply = [
-        ("child", "Baseline"),
-        ("low_confidence_adult", "Baseline"),
-        ("typical_adult", "Baseline")
-    ]
 
     lts_by_edge = {
         (int(row.u), int(row.v), int(row.key)): row.LTS
@@ -91,8 +84,8 @@ def build_cost_graph(city):
         is_no_access = lts_val is None or pd.isna(lts_val) or int(lts_val) == 0
         if not is_no_access:
             safe_lts = max(1, min(4, int(lts_val)))
-        
-        for user_group, scenario in profiles_to_apply:
+        # these values are pulled from config.py
+        for user_group, scenario in PROFILES_TO_APPLY:
             attr_name = f"cost_{user_group}_{scenario.replace(' ', '_')}"
             if is_no_access:
                 data[attr_name] = length * NO_ACCESS_WEIGHT
@@ -104,7 +97,7 @@ def build_cost_graph(city):
 
     print(f"Matched LTS for {matched} edges, {missing} edges had no LTS row")
 
-    out_path = f"{PROCESSED_OSM_DIR}/{city}_cost.graphml"
+    out_path = Path(PROCESSED_OSM_DIR) / f"{city}_cost.graphml"
     ox.save_graphml(G, out_path)
     print(f"Saved cost graph to {out_path}")
 
@@ -112,8 +105,8 @@ def build_cost_graph(city):
 
 def simplify_cost_graph(city, G=None):
     if G is None:
-        in_path = f"{PROCESSED_OSM_DIR}/{city}_cost.graphml"
-        if not os.path.exists(in_path):
+        in_path = Path(PROCESSED_OSM_DIR) / f"{city}_cost.graphml"
+        if not in_path.exists():
             raise FileNotFoundError(f"Cost graph not found: {in_path}")
         print(f"Loading cost graph for {city}")
         
@@ -147,7 +140,7 @@ def simplify_cost_graph(city, G=None):
     )
     print(f"Simplified to {G_simplified.number_of_edges()} edges")
 
-    out_path = f"{PROCESSED_OSM_DIR}/{city}_6_cost_simplified.graphml"
+    out_path = Path(PROCESSED_OSM_DIR) / f"{city}_6_cost_simplified.graphml"
     ox.save_graphml(G_simplified, out_path)
     print(f"Saved simplified cost graph to {out_path}")
 
