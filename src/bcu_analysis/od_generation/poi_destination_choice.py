@@ -23,7 +23,7 @@ def choose_destination(origin_node, destination_nodes, G, rule="closest_only", b
     
     if rule == "lognormal":
         for dest, dist in dests_with_dist:
-            weight = lognorm.pdf(dist, s=0.5, scale=mean_length) 
+            weight = lognorm.pdf(dist, s=std_dev, scale=mean_length) 
             weights.append(weight)
             dest_list.append(dest)
 
