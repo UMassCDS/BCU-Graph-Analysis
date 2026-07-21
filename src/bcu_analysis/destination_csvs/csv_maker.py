@@ -6,6 +6,7 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
+import time
 
 useragent = {'User-Agent': 'bcu-labs'}
 dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
@@ -33,7 +34,7 @@ def build_query(region, key, value, type, tags):
             f.write('out body geom;\n')
         print(f'{filepath} created')
 
-# Taken from StressMap code
+# Taken from StressMap code + edits
 def download_osm(region, type):
     global OVERWRITE
     queryFilepath = os.path.join(queryFolder, f'{region}{type}Destinations.query')
@@ -45,13 +46,38 @@ def download_osm(region, type):
         with open(queryFilepath, 'r') as f:
             overpass_query = f.read()
         print(f'Downloading OSM map data for {region}...')
-        response = requests.get(overpass_url, headers=useragent, params={'data': overpass_query}, timeout=300)
-        response.raise_for_status()
-        data = response.json()
-        print(f'\tDownloaded OSM map data for {region}')
-        with open(dataFilepath, 'w') as f:
-            json.dump(data, f)
-        print(f'Saved {region} map data')
+        # Attempts overpass api up to 10 times 
+        max_attempts = 10
+        for i in range(max_attempts):
+            try: 
+                response = requests.get(overpass_url, headers=useragent, params={'data': overpass_query}, timeout=300)
+                response.raise_for_status()
+                data = response.json()
+                print(f'\tDownloaded OSM map data for {region}')
+                with open(dataFilepath, 'w') as f:
+                    json.dump(data, f)
+                print(f'Saved {region} map data')
+                break
+            except requests.exceptions.HTTPError as err:
+                if i==max_attempts-1:
+                        print("Maximum number of attempts reached")
+                        raise err 
+                elif err.response.status_code == 504:
+                    print("The Overpass server took too long to respond (504 Gateway Timeout).")
+                    print("Attempting Dowload again")
+                    print(f"{max_attempts-1-i} attempts left")
+                    time.sleep(5)
+                    continue
+                elif err.response.status_code == 429:
+                    print("Too many requests at once")
+                    print("Waiting to try again.")
+                    time.sleep(10)
+                    print("Attempting Download again")
+                    print(f"{max_attempts-1-i} attempts left")
+                    continue
+                else:
+                    raise err
+
 
 def generate_coordinate_table(region, type):
 
@@ -105,7 +131,7 @@ def generate_coordinate_table(region, type):
         elif type == 'Office':
             specific = 'office'
         else:
-            raise KeyError("A 'type' tag is not defined for this destination type. Look at line 79.")
+            raise KeyError("A 'type' tag is not defined for this destination type.")
         
         # Handle standalone coordinates (extracts the latitude and longitude point for each node and stores it in the 'nodes_list')
         if el.get('type') == 'node':
@@ -271,15 +297,23 @@ def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=Fa
     download_osm(region, type)
     generate_coordinate_table(region, type)
     if removeAirport:
-        remove_logan_airport_shops_inplace(f"data/{region}{type}_Coordinates.csv")
+        remove_logan_airport_shops_inplace(f"{dataFolder}/{region}{type}_Coordinates.csv")
     if removeIsland:
         remove_island_locations_from_csv(region, type)
 
 if __name__ == '__main__':
-    city = ['Boston', 'wikipedia', 'en:Boston']
-    #main(*city, 'Store', ['shop=supermarket', 'shop=convenience'], removeIsland=True, removeAirport=True, rebuild=True)
-    #main(*city, 'Greenspace', ['leisure=park'],removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'Healthcare', ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'TransitStation', ['public_transport=station', 'highway=bus_stop'], removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'School', ['amenity=school'], removeIsland=True, removeAirport=False, rebuild=True)
+    cities = [
+        ['Boston', 'wikipedia', 'en:Boston'],
+        ['Cambridge', 'wikipedia', 'en:Cambridge, Massachusetts'],
+        ['Brookline', 'wikipedia', 'en:Brookline, Massachusetts'],
+        ['Somerville', 'wikipedia', 'en:Somerville, Massachusetts']
+    ]
+    for city in cities:
+        ## Uncomment as needed.
+        main(*city, 'Store', ['shop=supermarket', 'shop=convenience'], removeIsland=True, removeAirport=True, rebuild=True)
+        main(*city, 'Greenspace', ['leisure=park'],removeIsland=True, removeAirport=False, rebuild=True)
+        main(*city, 'Healthcare', ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], removeIsland=True, removeAirport=False, rebuild=True)
+        ### Offices are now found a different way
+        ###main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
+        main(*city, 'TransitStation', ['public_transport=station', 'highway=bus_stop'], removeIsland=True, removeAirport=False, rebuild=True)
+        main(*city, 'School', ['amenity=school'], removeIsland=True, removeAirport=False, rebuild=True)

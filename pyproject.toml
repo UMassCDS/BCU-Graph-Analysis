@@ -32,6 +32,8 @@ dependencies = [
     "pyarrow",
     "requests",
     "scikit-learn",
+    "requests",
+    "geopandas"
 ]
 
 [project.optional-dependencies]
