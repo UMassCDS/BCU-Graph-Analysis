@@ -8,6 +8,11 @@ from config import DATA_FOLDER, RAW_OSM_DIR, PROCESSED_OSM_DIR, PARAMETERS_DIR, 
 
 OVERWRITE = False
 
+# Set the single target profile here. 
+# The script will only calculate this profile's weight and store it strictly as 'cost'.
+TARGET_PROFILE_USER = 'typical_adult'
+TARGET_PROFILE_SCENARIO = 'Baseline'
+
 def lts_edges(region, gdf_edges):
     '''
     Calculate the LTS for all edges
@@ -31,7 +36,7 @@ def lts_edges(region, gdf_edges):
         gdf_edges = lts.convert_both_tag(gdf_edges)
         # Process bike lanes
         gdf_edges = lts.parse_lanes(gdf_edges)
-        -        # Process non-directional data
+        # Process non-directional data
         gdf_edges = lts.get_prevailing_speed(gdf_edges, rating_dict)
         gdf_edges = lts.get_lanes(gdf_edges, default_lanes=2)
         gdf_edges = lts.get_centerlines(gdf_edges, rating_dict)
@@ -54,7 +59,7 @@ def lts_edges(region, gdf_edges):
 def build_cost_graph(city):
     graph_path = Path(RAW_OSM_DIR) / f"{city}_raw.graphml"
     lts_path = Path(PROCESSED_OSM_DIR) / f"{city}_all_lts.csv"
-    cost_csv_path = Path(PARAMETERS_DIR) / "Cost first draft.csv" 
+    cost_csv_path = Path(PARAMETERS_DIR) / "Cost.csv" 
 
     if not graph_path.exists():
         raise FileNotFoundError(f"Graph not found: {graph_path}")
@@ -70,7 +75,8 @@ def build_cost_graph(city):
     lts_df = pd.read_csv(lts_path, usecols=['u', 'v', 'key', 'LTS'], low_memory=False)
     
     print("Loading dynamic profile costs...")
-    df_costs = pd.read_csv(cost_csv_path)
+    df_costs = pd.read_csv(cost_csv_path, sep='\t')
+
 # Map each (u, v, key) edge to its LTS for fast lookup against the graph.
     lts_by_edge = {
         (int(row.u), int(row.v), int(row.key)): row.LTS
@@ -91,16 +97,18 @@ def build_cost_graph(city):
         is_no_access = lts_val is None or pd.isna(lts_val) or int(lts_val) == 0
         if not is_no_access:
             safe_lts = max(1, min(4, int(lts_val)))
-        # these values are pulled from config.py
-        for user_group, scenario in PROFILES_TO_APPLY:
-            attr_name = f"cost_{user_group}_{scenario.replace(' ', '_')}"
-            if is_no_access:
-                data[attr_name] = length * NO_ACCESS_WEIGHT
+            
+        # these values are pulled from config.py 
+        # (Modified strictly for a single user_group profile 'cost' attribute)
+        if is_no_access:
+            data['cost'] = length * NO_ACCESS_WEIGHT
+        else:
+            row = df_costs[(df_costs['user_group'] == TARGET_PROFILE_USER) & (df_costs['scenario'] == TARGET_PROFILE_SCENARIO)]
+            if not row.empty:
+                weight_multiplier = float(row[f"lts{safe_lts}_weight"].iloc[0])
+                data['cost'] = length * weight_multiplier
             else:
-                row = df_costs[(df_costs['user_group'] == user_group) & (df_costs['scenario'] == scenario)]
-                if not row.empty:
-                    weight_multiplier = float(row[f"lts{safe_lts}_weight"].iloc[0])
-                    data[attr_name] = length * weight_multiplier
+                data['cost'] = length * NO_ACCESS_WEIGHT
 
     print(f"Matched LTS for {matched} edges, {missing} edges had no LTS row")
 
@@ -111,7 +119,7 @@ def build_cost_graph(city):
     return G
 
 def simplify_cost_graph(city, G=None):
-       """
+    """
     Simplify the cost graph, merging chains of edges between intersections
     into single edges. The merged edge's "cost" (and "length") is the sum of
     the costs of the constituent edges that were merged, and "max_lts" is the
@@ -145,13 +153,8 @@ def simplify_cost_graph(city, G=None):
 
     print(f"Simplifying graph ({G.number_of_edges()} edges)")
     # Sum cost and length across the merged segments, and take the worst LTS.
-    edge_attr_aggs = {'length': sum, 'max_lts': max_lts}
+    edge_attr_aggs = {'length': sum, 'max_lts': max_lts, 'cost': sum}
     
-    sample_edge = next(iter(G.edges(data=True)))[2]
-    cost_cols = [col for col in sample_edge.keys() if col.startswith('cost_')]
-    for cost_col in cost_cols:
-        edge_attr_aggs[cost_col] = sum
-
     G_simplified = ox.simplify_graph(
         G,
         edge_attr_aggs=edge_attr_aggs,
@@ -163,3 +166,4 @@ def simplify_cost_graph(city, G=None):
     print(f"Saved simplified cost graph to {out_path}")
 
     return G_simplified
+
