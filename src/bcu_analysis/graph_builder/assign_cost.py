@@ -111,6 +111,16 @@ def build_cost_graph(city):
     return G
 
 def simplify_cost_graph(city, G=None):
+       """
+    Simplify the cost graph, merging chains of edges between intersections
+    into single edges. The merged edge's "cost" (and "length") is the sum of
+    the costs of the constituent edges that were merged, and "max_lts" is the
+    worst (max) stress level along the merged edge.
+
+    If G is not supplied the un-simplified cost graph is loaded from
+    data/{city}_5_cost.graphml. The result is saved to
+    data/{city}_6_cost_simplified.graphml.
+    """
     if G is None:
         in_path = Path(PROCESSED_OSM_DIR) / f"{city}_cost.graphml"
         if not in_path.exists():
@@ -120,6 +130,7 @@ def simplify_cost_graph(city, G=None):
         G = ox.load_graphml(in_path) 
 
     def max_lts(values):
+        """Worst (max) stress level among merged segments; ignores unknowns."""
         levels = []
         for v in values:
             try:
