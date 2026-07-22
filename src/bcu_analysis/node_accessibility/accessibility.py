@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import ast
 import heapq
 import math
 from dataclasses import dataclass
-from typing import Hashable
+from typing import Hashable, Iterable
 
 import networkx as nx
 
@@ -14,6 +15,7 @@ METERS_PER_MILE = 1609.344
 DEFAULT_CUTOFF_MILES = 1.5
 
 EdgeId = tuple[Hashable, Hashable, Hashable]
+PhysicalSegmentId = tuple
 
 
 @dataclass(frozen=True)
@@ -30,6 +32,21 @@ class ExpansionResult:
     @property
     def reachable_directed_edge_count(self) -> int:
         return len(self.reachable_edges)
+
+
+@dataclass(frozen=True)
+class PhysicalRoadResult:
+    """Summary of reachable physical road segments."""
+
+    physical_segment_lengths: dict[PhysicalSegmentId, float]
+
+    @property
+    def physical_segment_count(self) -> int:
+        return len(self.physical_segment_lengths)
+
+    @property
+    def total_physical_length(self) -> float:
+        return sum(self.physical_segment_lengths.values())
 
 
 def _numeric_edge_value(
@@ -63,6 +80,97 @@ def _numeric_edge_value(
         )
 
     return value
+
+
+def _normalize_osmid(value) -> tuple[str, ...]:
+    """Convert an OSM ID value into a stable sorted tuple of strings."""
+    if value is None:
+        return ()
+
+    parsed = value
+
+    if isinstance(value, str):
+        stripped = value.strip()
+
+        if not stripped:
+            return ()
+
+        try:
+            parsed = ast.literal_eval(stripped)
+        except (ValueError, SyntaxError):
+            parsed = stripped
+
+    if isinstance(parsed, (list, tuple, set)):
+        return tuple(sorted(str(item) for item in parsed))
+
+    return (str(parsed),)
+
+
+def _normalize_geometry(value) -> str:
+    """Return a direction-independent geometry representation."""
+    if value is None:
+        return ""
+
+    if hasattr(value, "coords"):
+        coordinates = tuple(
+            (round(float(x), 7), round(float(y), 7))
+            for x, y, *rest in value.coords
+        )
+
+        reversed_coordinates = tuple(reversed(coordinates))
+        canonical = min(coordinates, reversed_coordinates)
+        return repr(canonical)
+
+    geometry_text = str(value).strip()
+
+    if not geometry_text:
+        return ""
+
+    return geometry_text
+
+
+def physical_segment_id(
+    graph: nx.MultiDiGraph,
+    edge_id: EdgeId,
+) -> PhysicalSegmentId:
+    """Create a canonical identifier for one physical road segment.
+
+    Opposite directed edges are merged when they have:
+
+    - the same unordered endpoint pair;
+    - the same normalized OSM ID;
+    - effectively the same physical length.
+
+    The edge key is included only as a fallback when no OSM ID exists. This
+    preserves separate parallel edges more safely than using endpoints alone.
+    """
+    u, v, key = edge_id
+    data = graph.get_edge_data(u, v, key)
+
+    if data is None:
+        raise KeyError(f"Edge {edge_id} is not present in the graph.")
+
+    endpoint_pair = tuple(sorted((str(u), str(v))))
+    osmid = _normalize_osmid(data.get("osmid"))
+    length = round(_numeric_edge_value(data, "length", edge_id), 3)
+    geometry = _normalize_geometry(data.get("geometry"))
+
+    if osmid:
+        return (
+            "osmid",
+            endpoint_pair,
+            osmid,
+            length,
+            geometry,
+        )
+
+    return (
+        "fallback",
+        endpoint_pair,
+        str(key),
+        length,
+        geometry,
+    )
 
 
 def expand_reachable_edges(
@@ -116,7 +224,7 @@ def expand_reachable_edges(
 
             new_cost = accumulated_cost + edge_cost
 
-            # Initial implementation uses full-edge boundary handling.
+            # Full-edge boundary method.
             if new_cost > numeric_budget:
                 continue
 
@@ -138,12 +246,44 @@ def expand_reachable_edges(
     )
 
 
+def collect_physical_road_segments(
+    graph: nx.MultiDiGraph,
+    reachable_edges: Iterable[EdgeId],
+) -> PhysicalRoadResult:
+    """Deduplicate reachable directed edges into physical road segments."""
+    physical_segment_lengths: dict[PhysicalSegmentId, float] = {}
+
+    for edge_id in reachable_edges:
+        u, v, key = edge_id
+        data = graph.get_edge_data(u, v, key)
+
+        if data is None:
+            raise KeyError(f"Edge {edge_id} is not present in the graph.")
+
+        segment_id = physical_segment_id(graph, edge_id)
+        length = _numeric_edge_value(data, "length", edge_id)
+
+        existing_length = physical_segment_lengths.get(segment_id)
+
+        if existing_length is None:
+            physical_segment_lengths[segment_id] = length
+        else:
+            physical_segment_lengths[segment_id] = max(
+                existing_length,
+                length,
+            )
+
+    return PhysicalRoadResult(
+        physical_segment_lengths=physical_segment_lengths
+    )
+
+
 def sum_reachable_directed_edge_lengths(
     graph: nx.MultiDiGraph,
-    reachable_edges: frozenset[EdgeId] | set[EdgeId],
+    reachable_edges: Iterable[EdgeId],
     length_attribute: str = "length",
 ) -> float:
-    """Sum physical lengths of unique reachable directed edges."""
+    """Sum physical lengths without merging opposite directions."""
     total_length = 0.0
 
     for edge_id in reachable_edges:
@@ -168,7 +308,7 @@ def calculate_node_accessibility(
     cutoff_miles: float = DEFAULT_CUTOFF_MILES,
     cost_field: str = "cost_typical_adult_Baseline",
 ) -> dict:
-    """Calculate initial weighted and ordinary accessibility for one node."""
+    """Calculate physical-road accessibility for one origin node."""
     cutoff_miles = float(cutoff_miles)
 
     if not math.isfinite(cutoff_miles) or cutoff_miles < 0:
@@ -192,18 +332,32 @@ def calculate_node_accessibility(
         weight_attribute="length",
     )
 
-    weighted_meters = sum_reachable_directed_edge_lengths(
+    weighted_physical = collect_physical_road_segments(
         graph,
         weighted_result.reachable_edges,
     )
 
-    distance_meters = sum_reachable_directed_edge_lengths(
+    distance_physical = collect_physical_road_segments(
         graph,
         distance_result.reachable_edges,
     )
 
-    absolute_miles = weighted_meters / METERS_PER_MILE
-    distance_miles = distance_meters / METERS_PER_MILE
+    weighted_directed_meters = sum_reachable_directed_edge_lengths(
+        graph,
+        weighted_result.reachable_edges,
+    )
+
+    distance_directed_meters = sum_reachable_directed_edge_lengths(
+        graph,
+        distance_result.reachable_edges,
+    )
+
+    absolute_miles = (
+        weighted_physical.total_physical_length / METERS_PER_MILE
+    )
+    distance_miles = (
+        distance_physical.total_physical_length / METERS_PER_MILE
+    )
 
     if distance_miles == 0:
         relative_accessibility = math.nan
@@ -220,6 +374,7 @@ def calculate_node_accessibility(
         "latitude": node_data.get("y"),
         "profile_cost_field": cost_field,
         "cutoff_miles": cutoff_miles,
+        "cutoff_meters": cutoff_meters,
         "absolute_accessibility_miles": absolute_miles,
         "distance_reachable_road_miles": distance_miles,
         "relative_accessibility": relative_accessibility,
@@ -229,5 +384,25 @@ def calculate_node_accessibility(
         "distance_reachable_directed_edge_count": (
             distance_result.reachable_directed_edge_count
         ),
+        "weighted_reachable_physical_segment_count": (
+            weighted_physical.physical_segment_count
+        ),
+        "distance_reachable_physical_segment_count": (
+            distance_physical.physical_segment_count
+        ),
+        "weighted_directed_edge_miles_debug": (
+            weighted_directed_meters / METERS_PER_MILE
+        ),
+        "distance_directed_edge_miles_debug": (
+            distance_directed_meters / METERS_PER_MILE
+        ),
+        "weighted_processed_node_count": (
+            weighted_result.processed_node_count
+        ),
+        "distance_processed_node_count": (
+            distance_result.processed_node_count
+        ),
+        "boundary_method": "full_edge",
+        "edge_counting_method": "physical_segment_deduplicated",
         "calculation_status": status,
     }

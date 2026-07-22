@@ -198,3 +198,175 @@ def test_isolated_node_returns_nan_ratio():
 
     assert math.isnan(result["relative_accessibility"])
     assert result["calculation_status"] == "zero_distance_denominator"
+
+
+def test_opposite_directions_are_one_physical_segment():
+    graph = nx.MultiDiGraph()
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        osmid=123,
+        length=100.0,
+        cost_typical_adult_Baseline=100.0,
+    )
+    graph.add_edge(
+        "B",
+        "A",
+        key=0,
+        osmid=123,
+        length=100.0,
+        cost_typical_adult_Baseline=100.0,
+    )
+
+    from bcu_analysis.node_accessibility.accessibility import (
+        collect_physical_road_segments,
+    )
+
+    physical = collect_physical_road_segments(
+        graph,
+        {("A", "B", 0), ("B", "A", 0)},
+    )
+
+    assert physical.physical_segment_count == 1
+    assert physical.total_physical_length == pytest.approx(100.0)
+
+
+def test_different_osmids_remain_separate_segments():
+    graph = nx.MultiDiGraph()
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        osmid=123,
+        length=100.0,
+    )
+    graph.add_edge(
+        "B",
+        "A",
+        key=1,
+        osmid=456,
+        length=100.0,
+    )
+
+    from bcu_analysis.node_accessibility.accessibility import (
+        collect_physical_road_segments,
+    )
+
+    physical = collect_physical_road_segments(
+        graph,
+        {("A", "B", 0), ("B", "A", 1)},
+    )
+
+    assert physical.physical_segment_count == 2
+    assert physical.total_physical_length == pytest.approx(200.0)
+
+
+def test_parallel_edges_without_osmid_remain_separate():
+    graph = nx.MultiDiGraph()
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        length=100.0,
+    )
+    graph.add_edge(
+        "A",
+        "B",
+        key=1,
+        length=100.0,
+    )
+
+    from bcu_analysis.node_accessibility.accessibility import (
+        collect_physical_road_segments,
+    )
+
+    physical = collect_physical_road_segments(
+        graph,
+        {("A", "B", 0), ("A", "B", 1)},
+    )
+
+    assert physical.physical_segment_count == 2
+    assert physical.total_physical_length == pytest.approx(200.0)
+
+
+def test_accessibility_uses_deduplicated_physical_mileage():
+    graph = nx.MultiDiGraph()
+    graph.add_node("A", x=-71.0, y=42.0)
+    graph.add_node("B", x=-71.1, y=42.1)
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        osmid=123,
+        length=100.0,
+        cost_typical_adult_Baseline=100.0,
+    )
+    graph.add_edge(
+        "B",
+        "A",
+        key=0,
+        osmid=123,
+        length=100.0,
+        cost_typical_adult_Baseline=100.0,
+    )
+
+    result = calculate_node_accessibility(
+        graph=graph,
+        origin_node="A",
+        cutoff_miles=1.5,
+        cost_field="cost_typical_adult_Baseline",
+    )
+
+    assert result["weighted_reachable_directed_edge_count"] == 2
+    assert result["weighted_reachable_physical_segment_count"] == 1
+    assert result["absolute_accessibility_miles"] == pytest.approx(
+        100.0 / 1609.344
+    )
+    assert result["weighted_directed_edge_miles_debug"] == pytest.approx(
+        200.0 / 1609.344
+    )
+
+
+def test_reversed_geometries_are_one_physical_segment():
+    from shapely.geometry import LineString
+
+    from bcu_analysis.node_accessibility.accessibility import (
+        collect_physical_road_segments,
+    )
+
+    graph = nx.MultiDiGraph()
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        osmid=123,
+        length=100.0,
+        geometry=LineString(
+            [(-71.0, 42.0), (-71.1, 42.1)]
+        ),
+    )
+
+    graph.add_edge(
+        "B",
+        "A",
+        key=0,
+        osmid=123,
+        length=100.0,
+        geometry=LineString(
+            [(-71.1, 42.1), (-71.0, 42.0)]
+        ),
+    )
+
+    physical = collect_physical_road_segments(
+        graph,
+        {("A", "B", 0), ("B", "A", 0)},
+    )
+
+    assert physical.physical_segment_count == 1
+    assert physical.total_physical_length == pytest.approx(100.0)
