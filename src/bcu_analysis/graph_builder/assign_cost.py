@@ -15,18 +15,23 @@ def lts_edges(region, gdf_edges):
     global OVERWRITE
     
     filepathAll = Path(PROCESSED_OSM_DIR) / f"{region}_all_lts.csv"
-
+    #load graph
     if filepathAll.exists() and (OVERWRITE is False):
         print(f"Loading LTS for {region}")
         all_lts = lts.read_lts_csv(filepathAll)
+        # print(f'{all_lts['LTS'].unique()=}')
     else:
         OVERWRITE = True
+         # Load the configuration files to caluclate ratings
         rating_dict = lts.read_rating()
         tables = lts.read_tables()
-
+         # Process features where side is more important than direction
         gdf_edges = lts.parking_present(gdf_edges, rating_dict)
+        # Convert schema to focus on direction
         gdf_edges = lts.convert_both_tag(gdf_edges)
+        # Process bike lanes
         gdf_edges = lts.parse_lanes(gdf_edges)
+        -        # Process non-directional data
         gdf_edges = lts.get_prevailing_speed(gdf_edges, rating_dict)
         gdf_edges = lts.get_lanes(gdf_edges, default_lanes=2)
         gdf_edges = lts.get_centerlines(gdf_edges, rating_dict)
@@ -36,11 +41,13 @@ def lts_edges(region, gdf_edges):
         gdf_edges = lts.define_adt(gdf_edges, rating_dict)
         gdf_edges = lts.LTS_separation(gdf_edges)
 
-        lts.column_value_counts(gdf_edges)
+        lts.column_value_counts(gdf_edges) # Useful for debugging
         all_lts = lts.calculate_lts(gdf_edges, tables)
         gdf_edges = lts.define_zoom(gdf_edges, rating_dict)
-        
+        # print(f'{all_lts['LTS'].unique()=}')
+        # print(f'Saving LTS for {region}')
         all_lts.to_csv(filepathAll)
+        # https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.to_file.html
 
     return all_lts
 
@@ -64,7 +71,7 @@ def build_cost_graph(city):
     
     print("Loading dynamic profile costs...")
     df_costs = pd.read_csv(cost_csv_path)
-
+# Map each (u, v, key) edge to its LTS for fast lookup against the graph.
     lts_by_edge = {
         (int(row.u), int(row.v), int(row.key)): row.LTS
         for row in lts_df.itertuples(index=False)
@@ -121,12 +128,12 @@ def simplify_cost_graph(city, G=None):
             except (ValueError, TypeError):
                 continue
         return max(levels) if levels else ''
-
+# Seed max_lts from each edge's LTS so the aggregation has it to merge.
     for _, _, data in G.edges(data=True):
         data['max_lts'] = data.get('LTS', '')
 
     print(f"Simplifying graph ({G.number_of_edges()} edges)")
-    
+    # Sum cost and length across the merged segments, and take the worst LTS.
     edge_attr_aggs = {'length': sum, 'max_lts': max_lts}
     
     sample_edge = next(iter(G.edges(data=True)))[2]
