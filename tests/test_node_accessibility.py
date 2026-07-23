@@ -370,3 +370,27 @@ def test_reversed_geometries_are_one_physical_segment():
 
     assert physical.physical_segment_count == 1
     assert physical.total_physical_length == pytest.approx(100.0)
+
+
+def test_relative_accessibility_is_normalized_to_one():
+    graph = nx.MultiDiGraph()
+    graph.add_node("A", x=-71.0, y=42.0)
+    graph.add_node("B", x=-71.1, y=42.1)
+
+    graph.add_edge(
+        "A",
+        "B",
+        key=0,
+        osmid=123,
+        length=34.5,
+        cost_typical_adult_Baseline=34.5,
+    )
+
+    result = calculate_node_accessibility(
+        graph=graph,
+        origin_node="A",
+        cutoff_miles=1.5,
+        cost_field="cost_typical_adult_Baseline",
+    )
+
+    assert result["relative_accessibility"] == 1.0

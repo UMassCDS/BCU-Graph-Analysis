@@ -364,6 +364,22 @@ def calculate_node_accessibility(
         status = "zero_distance_denominator"
     else:
         relative_accessibility = absolute_miles / distance_miles
+
+        if math.isclose(
+            relative_accessibility,
+            1.0,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            relative_accessibility = 1.0
+        elif math.isclose(
+            relative_accessibility,
+            0.0,
+            rel_tol=1e-12,
+            abs_tol=1e-12,
+        ):
+            relative_accessibility = 0.0
+
         status = "success"
 
     node_data = graph.nodes[origin_node]
