@@ -1,0 +1,21 @@
+scenario_id,user_group,scenario,scenario_description,lts1_weight,lts2_weight,lts3_weight,lts4_weight
+child_baseline,child,Baseline,Reference profile,1.0,2.0,4.0,8.0
+child_higher_lts2,child,Higher LTS2,Increase only the LTS2 penalty,1.0,2.5,4.0,8.0
+child_higher_lts3,child,Higher LTS3,Increase only the LTS3 penalty,1.0,2.0,5.5,8.0
+child_higher_lts4,child,Higher LTS4,Increase only the LTS4 penalty,1.0,2.0,4.0,11.0
+child_high_aversion,child,High aversion,Increase multiple penalties as a combined stress test,1.0,3.0,6.0,12.0
+low_confidence_adult_baseline,low_confidence_adult,Baseline,Reference profile,1.0,1.6,3.0,6.0
+low_confidence_adult_higher_lts2,low_confidence_adult,Higher LTS2,Increase only the LTS2 penalty,1.0,2.0,3.0,6.0
+low_confidence_adult_higher_lts3,low_confidence_adult,Higher LTS3,Increase only the LTS3 penalty,1.0,1.6,4.0,6.0
+low_confidence_adult_higher_lts4,low_confidence_adult,Higher LTS4,Increase only the LTS4 penalty,1.0,1.6,3.0,8.0
+low_confidence_adult_high_aversion,low_confidence_adult,High aversion,Increase multiple penalties as a combined stress test,1.0,2.2,4.5,9.0
+typical_adult_baseline,typical_adult,Baseline,Reference profile,1.0,1.3,2.2,4.0
+typical_adult_higher_lts2,typical_adult,Higher LTS2,Increase only the LTS2 penalty,1.0,1.6,2.2,4.0
+typical_adult_higher_lts3,typical_adult,Higher LTS3,Increase only the LTS3 penalty,1.0,1.3,3.0,4.0
+typical_adult_higher_lts4,typical_adult,Higher LTS4,Increase only the LTS4 penalty,1.0,1.3,2.2,5.5
+typical_adult_high_aversion,typical_adult,High aversion,Increase multiple penalties as a combined stress test,1.0,1.7,3.2,6.0
+experienced_traffic_tolerant_baseline,experienced_traffic_tolerant,Baseline,Reference profile,1.0,1.1,1.5,2.75
+experienced_traffic_tolerant_higher_lts2,experienced_traffic_tolerant,Higher LTS2,Increase only the LTS2 penalty,1.0,1.25,1.5,2.75
+experienced_traffic_tolerant_higher_lts3,experienced_traffic_tolerant,Higher LTS3,Increase only the LTS3 penalty,1.0,1.1,2.0,2.75
+experienced_traffic_tolerant_higher_lts4,experienced_traffic_tolerant,Higher LTS4,Increase only the LTS4 penalty,1.0,1.1,1.5,4.0
+experienced_traffic_tolerant_high_aversion,experienced_traffic_tolerant,High aversion,Increase multiple penalties as a combined stress test,1.0,1.3,2.2,4.5
