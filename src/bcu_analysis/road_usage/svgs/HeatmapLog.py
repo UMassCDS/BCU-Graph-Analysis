@@ -5,12 +5,9 @@ from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 import numpy as np
 
-def loadgraph(GraphPath='/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/', Graph_File="boston_only_usage.graphml"):
-    graphPath = GraphPath
-    graph_file = Graph_File
-
+def loadgraph(graph_path='/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/', graph_file="boston_only_usage.graphml"):
     print("Loading graph...")
-    G = nx.read_graphml(f"{graphPath}{graph_file}")
+    G = nx.read_graphml(f"{graph_path}{graph_file}")
     print(f"Nodes: {G.number_of_nodes():,}")
     print(f"Edges: {G.number_of_edges():,}")
 
@@ -82,8 +79,6 @@ def categorizingEdges(G, attributeToGraph, lowerThreshold, upperThreshold, filte
 
 
 def generateImage(G, edges, attributeName, lowerThreshold, upperThreshold, OutputPath, outputName):
-
-    outputPath = OutputPath
 
     zero_lines = edges[0]
     low_lines = edges[1]
@@ -169,7 +164,7 @@ def generateImage(G, edges, attributeName, lowerThreshold, upperThreshold, Outpu
     print("Saving visualization...")
     plt.tight_layout()
     plt.savefig(
-        f"{outputPath}{outputName}.svg", dpi=300, bbox_inches="tight", format="svg"
+        f"{OutputPath}{outputName}.svg", dpi=300, bbox_inches="tight", format="svg"
     )
     print(f"Completed Figure for {attributeName}!")
 

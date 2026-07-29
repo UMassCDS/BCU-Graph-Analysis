@@ -1,11 +1,8 @@
 import networkx as nx
 import pandas as pd
 
-def distributions(graphPath, graphFile, graphName, outputPath, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit):
-    graph_path = graphPath
-    graph_file = graphFile
-    graph_name = graphName
-    output_path = outputPath
+def distributions(graph_path, graph_file, graph_name, output_path, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit):
+
     print("Loading graph...")
     G = nx.read_graphml(f"{graph_path}{graph_file}")
 

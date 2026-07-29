@@ -1,14 +1,10 @@
 import networkx as nx
 
 def metricsGraph(inputPath, inputFile, outputPath, outputFile):
-    input_path = inputPath
-    input_file = inputFile
-    output_path = outputPath
-    output_file = outputFile
 
     # Load the directed graph
     print("Loading graph...")
-    G = nx.read_graphml(f"{input_path}{input_file}")
+    G = nx.read_graphml(f"{inputPath}{inputFile}")
     print(f"Graph type: {type(G)}")
     print(f"Nodes: {G.number_of_nodes()}")
     print(f"Edges: {G.number_of_edges()}")
@@ -51,8 +47,8 @@ def metricsGraph(inputPath, inputFile, outputPath, outputFile):
             data["potential_Dbenefit"] = 0
 
     # Save the updated graph
-    nx.write_graphml(G, f"{output_path}{output_file}")
-    print(f"Saved updated graph to: {output_file}")
+    nx.write_graphml(G, f"{outputPath}{outputFile}")
+    print(f"Saved updated graph to: {outputFile}")
 
 if __name__ == '__main__':
     metricsGraph(
