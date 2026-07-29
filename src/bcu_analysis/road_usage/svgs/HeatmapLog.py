@@ -17,17 +17,14 @@ def loadgraph(graph_path='/work/pi_plunkett_umass_edu/bcu/data/processed/road_us
 
 
 
-def categorizingEdges(G, attributeToGraph, lowerThreshold, upperThreshold, filter):
+def categorizingEdges(G, attributeToGraph, lower_threshold, upper_threshold, filter):
     zero_lines = []
     low_lines = []
     positive_lines = []
     positive_values = []
     high_lines = []
 
-    # Logarithmic thresholds (Adjust these values based on data distribution)
     # NOTE: Log scales require values strictly greater than 0. 
-    lower_threshold = lowerThreshold 
-    upper_threshold = upperThreshold
 
     print("Categorizing road segments...")
     for u, v, data in G.edges(data=True):
