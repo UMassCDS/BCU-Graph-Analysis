@@ -7,9 +7,9 @@ import pandas as pd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 import time
+import argparse
 
 useragent = {'User-Agent': 'bcu-labs'}
-dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
 queryFolder = 'src/bcu_analysis/destination_csvs/query'
 overpass_url = "https://overpass-api.de/api/interpreter"
 OVERWRITE = False
@@ -37,7 +37,7 @@ def build_query(region, key, value, type, tags):
 
 
 # Taken from StressMap code + edits
-def download_osm(region, type):
+def download_osm(region, type, dataFolder):
     global OVERWRITE
     queryFilepath = os.path.join(queryFolder, f'{region}{type}Destinations.query')
     dataFilepath = os.path.join(dataFolder, f'{region}_{type}_Destinations.json')
@@ -82,7 +82,7 @@ def download_osm(region, type):
 
 
 
-def read_raw_file(region, type):
+def read_raw_file(region, type, dataFolder):
     # Reads the json file and creates the csv file that will contain the coordinate table
     json_filepath = Path(dataFolder) / f'{region}_{type}_Destinations.json'
     
@@ -238,7 +238,7 @@ def eliminate_overlaps(features, region):
 
 
 
-def store_as_csv(gdf_locations, region, type):
+def store_as_csv(gdf_locations, region, type, dataFolder):
     csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv' 
     
     # 4. Project and extract coordinates accurately
@@ -302,35 +302,64 @@ def remove_island_locations(csv_path):
 
 
 
-def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=False):
+def main(rebuild=False):
+    # Argparser
+    parser = argparse.ArgumentParser(description="Parameters to determine the type and filtering of destinations and the region being considered.")
+    parser.add_argument("dataFolder", type=str, help="The path that all outputs are being stored.")
+    # Original dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
+    parser.add_argument("region", type=str, help="The region being considered.")
+    args = parser.parse_args()
+
     global OVERWRITE
     OVERWRITE = rebuild
-    Path(dataFolder).mkdir(exist_ok=True)
-    
-    build_query(region, key, value, type, tags)
-    download_osm(region, type)
-    elements = read_raw_file(region, type)
-    features = stores_name_geometry_type(elements, type)
-    gdf_locations = eliminate_overlaps(features, region)
-    store_as_csv(gdf_locations, region, type)
-    if removeAirport:
-        remove_logan_airport(f"{dataFolder}/{region}{type}_Coordinates.csv")
-    if removeIsland:
-        remove_island_locations(f"{dataFolder}/{region}{type}_Coordinates.csv")
+    Path(args.dataFolder).mkdir(exist_ok=True)
+    # Defining region, key, and value
+    if args.region == "Boston":
+        region = 'Boston'
+        key = 'wikipedia'
+        value = 'en:Boston'
+    elif args.region == "Cambridge":
+        region = 'Cambridge'
+        key = 'wikipedia'
+        value = 'en:Cambridge, Massachusetts'
+    elif args.region == "Brookline":
+        region = 'Brookline'
+        key = 'wikipedia'
+        value = 'en:Brookline, Massachusetts'
+    elif args.region == "Somerville":
+        region = 'Somerville'
+        key = 'wikipedia'
+        value = 'en:Somerville, Massachusetts'
+    else:
+        raise ValueError("A key-value pair has not been written for the inputted town.")
+    TypesAndTags = {
+        'Store' : ['shop=supermarket', 'shop=convenience'], 
+        'Greenspace': ['leisure=park'],
+        'Healthcare' : ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], 
+        'TransitStation' : ['public_transport=station', 'highway=bus_stop'], 
+        'School' : ['amenity=school']
+    }
+    # Island filter, Airport filter
+    TypesAndFilters = {
+        'Store' : [True, True],
+        'Greenspace': [True, False],
+        'Healthcare' : [True, False], 
+        'TransitStation' : [True, False], 
+        'School' : [True, False]
+    }
+
+    #Run pipeline
+    for type, tags in TypesAndTags:
+        build_query(region, key, value, type, tags)
+        download_osm(region, type, args.dataFolder)
+        elements = read_raw_file(region, type, args.dataFolder)
+        features = stores_name_geometry_type(elements, type)
+        gdf_locations = eliminate_overlaps(features, region)
+        store_as_csv(gdf_locations, region, type, args.dataFolder)
+        if TypesAndFilters.get(type)[1]:
+            remove_logan_airport(f"{args.dataFolder}/{region}{type}_Coordinates.csv")
+        if TypesAndFilters.get(type)[0]:
+            remove_island_locations(f"{args.dataFolder}/{region}{type}_Coordinates.csv")
 
 if __name__ == '__main__':
-    cities = [
-        ['Boston', 'wikipedia', 'en:Boston'],
-        ['Cambridge', 'wikipedia', 'en:Cambridge, Massachusetts'],
-        ['Brookline', 'wikipedia', 'en:Brookline, Massachusetts'],
-        ['Somerville', 'wikipedia', 'en:Somerville, Massachusetts']
-    ]
-    for city in cities:
-        ## Uncomment as needed.
-        main(*city, 'Store', ['shop=supermarket', 'shop=convenience'], removeIsland=True, removeAirport=True, rebuild=True)
-        main(*city, 'Greenspace', ['leisure=park'],removeIsland=True, removeAirport=False, rebuild=True)
-        main(*city, 'Healthcare', ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], removeIsland=True, removeAirport=False, rebuild=True)
-        ### Offices are now found a different way
-        ###main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
-        main(*city, 'TransitStation', ['public_transport=station', 'highway=bus_stop'], removeIsland=True, removeAirport=False, rebuild=True)
-        main(*city, 'School', ['amenity=school'], removeIsland=True, removeAirport=False, rebuild=True)
+    main(rebuild=True)
