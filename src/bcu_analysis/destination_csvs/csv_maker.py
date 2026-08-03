@@ -34,6 +34,8 @@ def build_query(region, key, value, type, tags):
             f.write('out body geom;\n')
         print(f'{filepath} created')
 
+
+
 # Taken from StressMap code + edits
 def download_osm(region, type):
     global OVERWRITE
@@ -79,18 +81,22 @@ def download_osm(region, type):
                     raise err
 
 
-def generate_coordinate_table(region, type):
 
+def read_raw_file(region, type):
     # Reads the json file and creates the csv file that will contain the coordinate table
     json_filepath = Path(dataFolder) / f'{region}_{type}_Destinations.json'
-    csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv'
     
     with open(json_filepath, 'r', encoding='utf-8') as f:
         osm_data = json.load(f)
     
     # Loads all of the raw OSM pieces (nodes, ways, and relations) and stores as 'elements'
     elements = osm_data.get('elements', [])
-    
+
+    return elements
+
+
+
+def stores_name_geometry_type(elements, type):
     # Create empty lists to store nodes and ways/relations separately 
     polygons_list = []
     nodes_list = []
@@ -98,20 +104,15 @@ def generate_coordinate_table(region, type):
     # 1. Map elements precisely by their architectural structure
     for el in elements:
         tags = el.get('tags', {})
+
         name = tags.get('name', 'unnamed').strip().lower()
         # Determining the 'specific' variable (to indicate what type of destination something is)
         if type == 'Store':
             specific = tags.get('shop', 'NaN')
-        elif type == 'Greenspace':
-            specific = 'park'
-        elif type == 'School':
-            specific = 'school'
         elif type == 'TransitStation':
-            is_bus_stop = tags.get('public_transport', 'NaN')
-            if is_bus_stop != 'station':
-                specific = 'bus_stop'
-            elif is_bus_stop == 'NaN':
-                specific = type
+            is_bus_stop = tags.get('highway', 'NaN')
+            if is_bus_stop == 'bus_stop':
+                specific = is_bus_stop
             else:
                 specific = tags.get('station', 'NaN')
                 if specific == 'NaN' or specific == 'yes' or specific == '26':
@@ -128,10 +129,8 @@ def generate_coordinate_table(region, type):
                         specific = building
         elif type == 'Healthcare':
             specific = tags.get('amenity', 'NaN')
-        elif type == 'Office':
-            specific = 'office'
         else:
-            raise KeyError("A 'type' tag is not defined for this destination type.")
+            specific = type.lower()
         
         # Handle standalone coordinates (extracts the latitude and longitude point for each node and stores it in the 'nodes_list')
         if el.get('type') == 'node':
@@ -162,6 +161,14 @@ def generate_coordinate_table(region, type):
                 # Merge multi-part relations into one unified spatial asset
                 unified_relation_geom = unary_union(outer_polys)
                 polygons_list.append({'name': name, 'geometry': unified_relation_geom, 'type': specific})
+
+    return [polygons_list, nodes_list]
+
+
+
+def eliminate_overlaps(features, region):
+    polygons_list = features[0]
+    nodes_list = features[1]
 
     # 2. Prevent overlapping assets using systematic spatial indices
     # Create list that will contain all of the features (nodes or polygons) that do not overlap with oneanother (to avoid double-counting a location)
@@ -227,6 +234,13 @@ def generate_coordinate_table(region, type):
     # Combine everything back together cleanly
     gdf_locations = pd.concat(cleaned_features, ignore_index=True)
 
+    return gdf_locations
+
+
+
+def store_as_csv(gdf_locations, region, type):
+    csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv' 
+    
     # 4. Project and extract coordinates accurately
     # Converts list of shapes/nodes to a digital map (in meters)
     gdf_projected = gdf_locations.to_crs("EPSG:3857")
@@ -242,7 +256,9 @@ def generate_coordinate_table(region, type):
     print(f"Success! Table containing {len(df_final_output)} unique locations saved.")
     print(df_final_output.head())
 
-def remove_logan_airport_shops_inplace(csv_path):
+
+
+def remove_logan_airport(csv_path):
     # Load the data from the source file
     df = pd.read_csv(csv_path)
     
@@ -266,13 +282,9 @@ def remove_logan_airport_shops_inplace(csv_path):
     print(f"{len(removed_locations)} locations removed: {removed_locations}")
     print(f"{len(filtered_df)} locations remaining")
 
-def remove_island_locations_from_csv(region, type):
-    file_name = f'{region}{type}_Coordinates.csv'
-    csv_path = Path(dataFolder) / file_name
-    if not csv_path.exists():
-        print(f"Error: File not found at {csv_path}. Run your main pipeline first.")
-        return
 
+
+def remove_island_locations(csv_path):
     print(f"Reading generated dataset from {csv_path}...")
     df = pd.read_csv(csv_path)
     initial_count = len(df)
@@ -288,6 +300,8 @@ def remove_island_locations_from_csv(region, type):
     print(f"Removed {len(removed_locations)} island location(s): {removed_locations}")
     print(f"Success! Overwrote {csv_path}. Cleaned rows from {initial_count} down to {final_count}.")
 
+
+
 def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=False):
     global OVERWRITE
     OVERWRITE = rebuild
@@ -295,11 +309,14 @@ def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=Fa
     
     build_query(region, key, value, type, tags)
     download_osm(region, type)
-    generate_coordinate_table(region, type)
+    elements = read_raw_file(region, type)
+    features = stores_name_geometry_type(elements, type)
+    gdf_locations = eliminate_overlaps(features, region)
+    store_as_csv(gdf_locations, region, type)
     if removeAirport:
-        remove_logan_airport_shops_inplace(f"{dataFolder}/{region}{type}_Coordinates.csv")
+        remove_logan_airport(f"{dataFolder}/{region}{type}_Coordinates.csv")
     if removeIsland:
-        remove_island_locations_from_csv(region, type)
+        remove_island_locations(f"{dataFolder}/{region}{type}_Coordinates.csv")
 
 if __name__ == '__main__':
     cities = [
