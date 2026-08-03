@@ -307,8 +307,11 @@ def main(rebuild=False):
     parser = argparse.ArgumentParser(description="Parameters to determine the type and filtering of destinations and the region being considered.")
     parser.add_argument("dataFolder", type=str, help="The path that all outputs are being stored.")
     # Original dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
-    parser.add_argument("region", type=str, help="The region being considered.")
-    args = parser.parse_args()
+    parser.add_argument("region", type=str, help="The region being considered.(Options: Boston, Brookline, Cambridge, and Somerville)")
+    args = parser.parse_args() 
+    print("Working Under...")
+    print(f"region: {args.region}")
+    print(f"data folder: {args.dataFolder}")
 
     global OVERWRITE
     OVERWRITE = rebuild
@@ -349,7 +352,7 @@ def main(rebuild=False):
     }
 
     #Run pipeline
-    for type, tags in TypesAndTags:
+    for type, tags in TypesAndTags.items():
         build_query(region, key, value, type, tags)
         download_osm(region, type, args.dataFolder)
         elements = read_raw_file(region, type, args.dataFolder)
