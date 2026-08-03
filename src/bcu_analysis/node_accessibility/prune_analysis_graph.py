@@ -14,36 +14,21 @@ from bcu_analysis.node_accessibility.accessibility import (
 )
 
 
-INPUT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified.graphml"
-)
+INPUT_GRAPH_PATH = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified.graphml")
 
 OUTPUT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified_pruned.graphml"
+    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml"
 )
 
-AUDIT_DIRECTORY = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/"
-    "graph_pruning"
-)
+AUDIT_DIRECTORY = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/graph_pruning")
 
-COMPONENT_INVENTORY_PATH = (
-    AUDIT_DIRECTORY / "component_inventory.csv"
-)
+COMPONENT_INVENTORY_PATH = AUDIT_DIRECTORY / "component_inventory.csv"
 
-REMOVED_COMPONENTS_PATH = (
-    AUDIT_DIRECTORY / "removed_components.csv"
-)
+REMOVED_COMPONENTS_PATH = AUDIT_DIRECTORY / "removed_components.csv"
 
-REMOVED_NODES_PATH = (
-    AUDIT_DIRECTORY / "removed_nodes.csv"
-)
+REMOVED_NODES_PATH = AUDIT_DIRECTORY / "removed_nodes.csv"
 
-SUMMARY_PATH = (
-    AUDIT_DIRECTORY / "graph_pruning_summary.txt"
-)
+SUMMARY_PATH = AUDIT_DIRECTORY / "graph_pruning_summary.txt"
 
 
 # Components shorter than this cannot provide enough road mileage
@@ -56,9 +41,7 @@ def numeric_length(value) -> float:
     length = float(value)
 
     if length < 0:
-        raise ValueError(
-            f"Encountered negative edge length: {length}"
-        )
+        raise ValueError(f"Encountered negative edge length: {length}")
 
     return length
 
@@ -82,22 +65,16 @@ def component_physical_segments(
         )
 
         if edge_data is None:
-            raise KeyError(
-                f"Missing graph edge data for {edge_id}"
-            )
+            raise KeyError(f"Missing graph edge data for {edge_id}")
 
         segment_id = physical_segment_id(
             graph,
             edge_id,
         )
 
-        length = numeric_length(
-            edge_data.get("length", 0.0)
-        )
+        length = numeric_length(edge_data.get("length", 0.0))
 
-        previous_length = segment_lengths.get(
-            segment_id
-        )
+        previous_length = segment_lengths.get(segment_id)
 
         if previous_length is None:
             segment_lengths[segment_id] = length
@@ -131,18 +108,10 @@ def component_bounds(
             latitudes.append(float(latitude))
 
     return {
-        "min_longitude": (
-            min(longitudes) if longitudes else None
-        ),
-        "max_longitude": (
-            max(longitudes) if longitudes else None
-        ),
-        "min_latitude": (
-            min(latitudes) if latitudes else None
-        ),
-        "max_latitude": (
-            max(latitudes) if latitudes else None
-        ),
+        "min_longitude": (min(longitudes) if longitudes else None),
+        "max_longitude": (max(longitudes) if longitudes else None),
+        "min_latitude": (min(latitudes) if latitudes else None),
+        "max_latitude": (max(latitudes) if latitudes else None),
     }
 
 
@@ -168,6 +137,7 @@ def classify_component(
 
     return True, "meets_minimum_component_miles"
 
+
 def main() -> None:
     print(f"Loading original graph: {INPUT_GRAPH_PATH}")
     graph = ox.load_graphml(INPUT_GRAPH_PATH)
@@ -175,11 +145,7 @@ def main() -> None:
     original_node_count = graph.number_of_nodes()
     original_edge_count = graph.number_of_edges()
 
-    print(
-        f"Original graph: "
-        f"{original_node_count:,} nodes, "
-        f"{original_edge_count:,} directed edges"
-    )
+    print(f"Original graph: {original_node_count:,} nodes, {original_edge_count:,} directed edges")
 
     components = sorted(
         nx.weakly_connected_components(graph),
@@ -187,57 +153,33 @@ def main() -> None:
         reverse=True,
     )
 
-    print(
-        f"Weakly connected components: "
-        f"{len(components):,}"
-    )
+    print(f"Weakly connected components: {len(components):,}")
 
     inventory_records = []
     removed_node_records = []
     nodes_to_remove = set()
 
-    for component_id, component in enumerate(
-        components
-    ):
+    for component_id, component in enumerate(components):
         component_nodes = set(component)
 
-        directed_edge_count = (
-            graph.subgraph(
-                component_nodes
-            ).number_of_edges()
+        directed_edge_count = graph.subgraph(component_nodes).number_of_edges()
+
+        physical_segments = component_physical_segments(
+            graph,
+            component_nodes,
         )
 
-        physical_segments = (
-            component_physical_segments(
-                graph,
-                component_nodes,
-            )
-        )
+        physical_segment_count = len(physical_segments)
 
-        physical_segment_count = len(
-            physical_segments
-        )
+        total_physical_meters = sum(physical_segments.values())
 
-        total_physical_meters = sum(
-            physical_segments.values()
-        )
+        total_physical_miles = total_physical_meters / METERS_PER_MILE
 
-        total_physical_miles = (
-            total_physical_meters
-            / METERS_PER_MILE
-        )
-
-        keep_component, decision_reason = (
-            classify_component(
-                component_id=component_id,
-                node_count=len(component_nodes),
-                physical_segment_count=(
-                    physical_segment_count
-                ),
-                total_physical_miles=(
-                    total_physical_miles
-                ),
-            )
+        keep_component, decision_reason = classify_component(
+            component_id=component_id,
+            node_count=len(component_nodes),
+            physical_segment_count=(physical_segment_count),
+            total_physical_miles=(total_physical_miles),
         )
 
         bounds = component_bounds(
@@ -251,26 +193,16 @@ def main() -> None:
                 "keep_component": keep_component,
                 "decision_reason": decision_reason,
                 "node_count": len(component_nodes),
-                "directed_edge_count": (
-                    directed_edge_count
-                ),
-                "physical_segment_count": (
-                    physical_segment_count
-                ),
-                "total_physical_meters": (
-                    total_physical_meters
-                ),
-                "total_physical_miles": (
-                    total_physical_miles
-                ),
+                "directed_edge_count": (directed_edge_count),
+                "physical_segment_count": (physical_segment_count),
+                "total_physical_meters": (total_physical_meters),
+                "total_physical_miles": (total_physical_miles),
                 **bounds,
             }
         )
 
         if not keep_component:
-            nodes_to_remove.update(
-                component_nodes
-            )
+            nodes_to_remove.update(component_nodes)
 
             for node in component_nodes:
                 node_data = graph.nodes[node]
@@ -279,93 +211,47 @@ def main() -> None:
                     {
                         "node_id": node,
                         "component_id": component_id,
-                        "decision_reason": (
-                            decision_reason
-                        ),
-                        "component_node_count": (
-                            len(component_nodes)
-                        ),
-                        "component_physical_segment_count": (
-                            physical_segment_count
-                        ),
-                        "component_total_physical_miles": (
-                            total_physical_miles
-                        ),
+                        "decision_reason": (decision_reason),
+                        "component_node_count": (len(component_nodes)),
+                        "component_physical_segment_count": (physical_segment_count),
+                        "component_total_physical_miles": (total_physical_miles),
                         "longitude": node_data.get("x"),
                         "latitude": node_data.get("y"),
                     }
                 )
 
-    inventory = pd.DataFrame(
-        inventory_records
-    )
+    inventory = pd.DataFrame(inventory_records)
 
-    removed_components = inventory.loc[
-        ~inventory["keep_component"]
-    ].copy()
+    removed_components = inventory.loc[~inventory["keep_component"]].copy()
 
-    removed_nodes = pd.DataFrame(
-        removed_node_records
-    )
+    removed_nodes = pd.DataFrame(removed_node_records)
 
-    print(
-        f"Components retained: "
-        f"{inventory['keep_component'].sum():,}"
-    )
+    print(f"Components retained: {inventory['keep_component'].sum():,}")
 
-    print(
-        f"Components removed: "
-        f"{len(removed_components):,}"
-    )
+    print(f"Components removed: {len(removed_components):,}")
 
-    print(
-        f"Nodes scheduled for removal: "
-        f"{len(nodes_to_remove):,}"
-    )
+    print(f"Nodes scheduled for removal: {len(nodes_to_remove):,}")
 
     pruned_graph = graph.copy()
-    pruned_graph.remove_nodes_from(
-        nodes_to_remove
-    )
+    pruned_graph.remove_nodes_from(nodes_to_remove)
 
-    pruned_node_count = (
-        pruned_graph.number_of_nodes()
-    )
+    pruned_node_count = pruned_graph.number_of_nodes()
 
-    pruned_edge_count = (
-        pruned_graph.number_of_edges()
-    )
+    pruned_edge_count = pruned_graph.number_of_edges()
 
     if pruned_node_count == 0:
-        raise RuntimeError(
-            "Pruning removed every graph node."
-        )
+        raise RuntimeError("Pruning removed every graph node.")
 
-    if not nx.is_weakly_connected(
-        pruned_graph
-    ):
-        retained_component_count = (
-            nx.number_weakly_connected_components(
-                pruned_graph
-            )
-        )
+    if not nx.is_weakly_connected(pruned_graph):
+        retained_component_count = nx.number_weakly_connected_components(pruned_graph)
     else:
         retained_component_count = 1
 
-    pruned_graph.graph[
-        "pruning_method"
-    ] = (
-        "remove weak components with insufficient "
-        "total physical-road mileage"
-    )
+    pruned_graph.graph["pruning_method"] = "remove weak components with insufficient total physical-road mileage"
 
-    pruned_graph.graph[
-        "minimum_component_miles"
-    ] = str(MIN_COMPONENT_MILES)
+    pruned_graph.graph["minimum_component_miles"] = str(MIN_COMPONENT_MILES)
 
-    pruned_graph.graph[
-        "source_graph"
-    ] = str(INPUT_GRAPH_PATH)
+    pruned_graph.graph["source_graph"] = str(INPUT_GRAPH_PATH)
 
     AUDIT_DIRECTORY.mkdir(
         parents=True,
@@ -387,35 +273,20 @@ def main() -> None:
         index=False,
     )
 
-    print(
-        f"Saving pruned graph: "
-        f"{OUTPUT_GRAPH_PATH}"
-    )
+    print(f"Saving pruned graph: {OUTPUT_GRAPH_PATH}")
 
     ox.save_graphml(
         pruned_graph,
         OUTPUT_GRAPH_PATH,
     )
 
-    removed_node_count = (
-        original_node_count - pruned_node_count
-    )
+    removed_node_count = original_node_count - pruned_node_count
 
-    removed_edge_count = (
-        original_edge_count - pruned_edge_count
-    )
+    removed_edge_count = original_edge_count - pruned_edge_count
 
-    node_removal_percent = (
-        100.0
-        * removed_node_count
-        / original_node_count
-    )
+    node_removal_percent = 100.0 * removed_node_count / original_node_count
 
-    edge_removal_percent = (
-        100.0
-        * removed_edge_count
-        / original_edge_count
-    )
+    edge_removal_percent = 100.0 * removed_edge_count / original_edge_count
 
     summary_lines = [
         "Greater Boston graph-pruning summary",
@@ -425,48 +296,20 @@ def main() -> None:
         f"Output graph: {OUTPUT_GRAPH_PATH}",
         "",
         "Retention rule:",
-        (
-            "A component is removed when it contains less than "
-            f"{MIN_COMPONENT_MILES:.2f} physical road miles."
-        ),
-        (
-            "Physical-segment counts are recorded for auditing "
-            "but do not control pruning."
-        ),
+        (f"A component is removed when it contains less than {MIN_COMPONENT_MILES:.2f} physical road miles."),
+        ("Physical-segment counts are recorded for auditing but do not control pruning."),
         "",
         f"Original nodes: {original_node_count:,}",
         f"Pruned nodes: {pruned_node_count:,}",
-        (
-            f"Removed nodes: {removed_node_count:,} "
-            f"({node_removal_percent:.3f}%)"
-        ),
+        (f"Removed nodes: {removed_node_count:,} ({node_removal_percent:.3f}%)"),
         "",
-        (
-            f"Original directed edges: "
-            f"{original_edge_count:,}"
-        ),
-        (
-            f"Pruned directed edges: "
-            f"{pruned_edge_count:,}"
-        ),
-        (
-            f"Removed directed edges: "
-            f"{removed_edge_count:,} "
-            f"({edge_removal_percent:.3f}%)"
-        ),
+        (f"Original directed edges: {original_edge_count:,}"),
+        (f"Pruned directed edges: {pruned_edge_count:,}"),
+        (f"Removed directed edges: {removed_edge_count:,} ({edge_removal_percent:.3f}%)"),
         "",
-        (
-            f"Original weak components: "
-            f"{len(components):,}"
-        ),
-        (
-            f"Retained weak components: "
-            f"{retained_component_count:,}"
-        ),
-        (
-            f"Removed weak components: "
-            f"{len(removed_components):,}"
-        ),
+        (f"Original weak components: {len(components):,}"),
+        (f"Retained weak components: {retained_component_count:,}"),
+        (f"Removed weak components: {len(removed_components):,}"),
         "",
         f"Component inventory: {COMPONENT_INVENTORY_PATH}",
         f"Removed components: {REMOVED_COMPONENTS_PATH}",
