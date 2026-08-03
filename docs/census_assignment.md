@@ -10,10 +10,11 @@ area:
 
 ```bash
 python src/bcu_analysis/census/run_census_assignment.py \
-  --region REGION
+  --region REGION \
+  --graph-path /path/to/graph.graphml
 ```
 
-Supported values are:
+Supported region values are:
 
 - `boston`
 - `brookline`
@@ -23,41 +24,66 @@ Supported values are:
 
 `greater-boston` means Boston, Brookline, Cambridge, and Somerville combined.
 
+The graph path is required. This keeps graph provenance explicit and avoids
+silently treating a legacy or locally generated graph as the canonical input.
+
 Examples:
 
 ```bash
-# Combined four-city study area
+# Combined four-city assignment using the pruned analysis graph
 python src/bcu_analysis/census/run_census_assignment.py \
-  --region greater-boston
+  --region greater-boston \
+  --graph-path /work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml \
+  --output-prefix greater_boston_pruned
 
-# Boston only
+# Boston tracts assigned to nodes from the same supplied graph
 python src/bcu_analysis/census/run_census_assignment.py \
-  --region boston
-
-# Cambridge only
-python src/bcu_analysis/census/run_census_assignment.py \
-  --region cambridge
+  --region boston \
+  --graph-path /work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml \
+  --output-prefix boston_pruned
 ```
 
-The graph, tract, and output paths can also be overridden:
+Alternative tract and output locations can be supplied explicitly:
 
 ```bash
 python src/bcu_analysis/census/run_census_assignment.py \
-  --region brookline \
+  --region cambridge \
   --graph-path /path/to/graph.graphml \
   --tract-path /path/to/ma_tracts_population.geojson \
-  --output-directory /path/to/results
+  --output-directory /path/to/results \
+  --output-prefix cambridge_analysis
 ```
 
-The selected `--region` controls which municipal boundary or combined boundary
-is used to retain Census tracts. The graph is selected independently with
-`--graph-path`. The default is the pruned four-city graph on Unity.
+## Region and graph scope
+
+`--region` controls which municipal boundary is used to retain Census tracts.
+It does not crop the supplied graph.
+
+The allocation CSV contains only node-tract allocation rows for retained tracts.
+The node spatial outputs retain every node in the supplied graph. Nodes that do
+not receive an allocation remain in those node outputs with assigned population
+equal to zero.
+
+This distinction allows one graph to be reused for localized analyses while
+keeping the graph input explicit.
+
+## Output naming
+
+If `--output-prefix` is omitted, output filenames use the selected region, such
+as `greater_boston_node_tract_allocation.csv`.
+
+Use an explicit prefix when the graph has an important processing state:
+
+- `greater_boston_pruned`
+- `greater_boston_unpruned`
+- `boston_pruned`
+
+The program does not infer that a graph is pruned from the region selection.
 
 ## Inputs
 
-The default Unity inputs are:
+The default Census tract input on Unity is:
 
-- `greater_boston_6_cost_simplified_pruned.graphml`
 - `ma_tracts_population.geojson`
 
 The tract file must contain:
@@ -65,6 +91,8 @@ The tract file must contain:
 - `GEOID`
 - `population`
 - tract geometry
+
+The graph is always supplied through `--graph-path`.
 
 ## Assignment method
 
@@ -93,8 +121,7 @@ These can be changed with:
 
 ## Outputs
 
-Output filenames include the selected region. For example,
-`--region greater-boston` creates:
+For a run with `--output-prefix greater_boston_pruned`, the generated files are:
 
 - `greater_boston_pruned_node_tract_allocation.csv`
 - `greater_boston_pruned_node_tract_allocation.parquet`
@@ -102,8 +129,6 @@ Output filenames include the selected region. For example,
 - `greater_boston_pruned_nodes_with_population.parquet`
 - `greater_boston_pruned_nodes_with_population_web.geojson`
 - `greater_boston_four_city_boundary.geojson`
-
-A Boston-only run uses the same pattern with the `boston_pruned` prefix.
 
 The allocation table includes:
 

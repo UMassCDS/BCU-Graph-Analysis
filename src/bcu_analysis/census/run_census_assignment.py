@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Sequence
 from pathlib import Path
 
 import geopandas as gpd
@@ -12,10 +13,6 @@ import pandas as pd
 from bcu_analysis.census.assignment import assign_population_to_nodes_by_tract_area
 
 
-DEFAULT_GRAPH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified_pruned.graphml"
-)
 DEFAULT_TRACTS = Path(
     "/work/pi_plunkett_umass_edu/bcu/data/processed/census/"
     "ma_tracts_population.geojson"
@@ -38,7 +35,7 @@ REGIONS = {
 }
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Assign Census population to graph nodes for one city or the "
@@ -46,12 +43,24 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("--region", required=True, choices=sorted(REGIONS))
-    parser.add_argument("--graph-path", type=Path, default=DEFAULT_GRAPH)
+    parser.add_argument(
+        "--graph-path",
+        type=Path,
+        required=True,
+        help="GraphML file whose nodes will receive Census population.",
+    )
     parser.add_argument("--tract-path", type=Path, default=DEFAULT_TRACTS)
     parser.add_argument("--output-directory", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--output-prefix",
+        help=(
+            "Prefix for generated files. If omitted, the selected region is "
+            "used without assuming that the graph is pruned."
+        ),
+    )
     parser.add_argument("--candidate-buffer-m", type=float, default=100.0)
     parser.add_argument("--min-region-overlap-share", type=float, default=0.50)
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def load_boundary(region: str) -> gpd.GeoDataFrame:
@@ -77,13 +86,17 @@ def load_boundary(region: str) -> gpd.GeoDataFrame:
     )
 
 
-def output_paths(directory: Path, region: str) -> dict[str, Path]:
-    slug = region.replace("-", "_")
-    prefix = f"{slug}_pruned"
+def output_paths(
+    directory: Path,
+    region: str,
+    output_prefix: str | None = None,
+) -> dict[str, Path]:
+    region_slug = region.replace("-", "_")
+    prefix = (output_prefix or region_slug).replace("-", "_")
     boundary_name = (
         "greater_boston_four_city_boundary.geojson"
         if region == "greater-boston"
-        else f"{slug}_boundary.geojson"
+        else f"{region_slug}_boundary.geojson"
     )
 
     return {
@@ -96,8 +109,8 @@ def output_paths(directory: Path, region: str) -> dict[str, Path]:
     }
 
 
-def main() -> None:
-    args = parse_args()
+def main(argv: Sequence[str] | None = None) -> None:
+    args = parse_args(argv)
 
     if not args.graph_path.exists():
         raise FileNotFoundError(f"Graph file not found: {args.graph_path}")
@@ -109,11 +122,16 @@ def main() -> None:
         raise ValueError("--min-region-overlap-share must be between 0 and 1")
 
     args.output_directory.mkdir(parents=True, exist_ok=True)
-    paths = output_paths(args.output_directory, args.region)
+    paths = output_paths(
+        args.output_directory,
+        args.region,
+        args.output_prefix,
+    )
 
     print(f"Selected region: {args.region}")
     print(f"Graph: {args.graph_path}")
     print(f"Tracts: {args.tract_path}")
+    print(f"Output prefix: {(args.output_prefix or args.region).replace('-', '_')}")
 
     graph = ox.load_graphml(args.graph_path)
     nodes, _ = ox.graph_to_gdfs(graph)
