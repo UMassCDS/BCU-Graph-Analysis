@@ -112,7 +112,7 @@ def build_cost_graph(region_name, cost_scenario, data_dir):
 
     print(f"Matched LTS for {matched} edges, {missing} edges had no LTS row")
 
-    out_path = f"{data_dir}/processed/osm/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}.graphml"
+    out_path = f"{data_dir}/output/cost_scenarios/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}.graphml"
     ox.save_graphml(G, out_path)
     print(f"Saved cost graph to {out_path}")
 
@@ -125,12 +125,8 @@ def simplify_cost_graph(region_name, cost_scenario, data_dir):
     into single edges. The merged edge's "cost" (and "length") is the sum of
     the costs of the constituent edges that were merged, and "max_lts" is the
     worst (max) stress level along the merged edge.
-
-    If G is not supplied the un-simplified cost graph is loaded from
-    data/{city}_5_cost.graphml. The result is saved to
-    data/{city}_6_cost_simplified.graphml.
     """
-    in_path = f"{data_dir}/processed/osm/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}.graphml"
+    in_path = f"{data_dir}/output/cost_scenarios/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}.graphml"
     if not os.path.exists(in_path):
         raise FileNotFoundError(f"Cost graph not found: {in_path}")
     print(f"Loading cost graph for {region_name}")
@@ -169,7 +165,7 @@ def simplify_cost_graph(region_name, cost_scenario, data_dir):
     )
     print(f"Simplified to {G_simplified.number_of_edges()} edges")
 
-    out_path = f"{data_dir}/output/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}_simplified.graphml"
+    out_path = f"{data_dir}/output/cost_scenarios/cost_scenario_{cost_scenario}/{region_name}_cost_scenario_{cost_scenario}_simplified.graphml"
     ox.save_graphml(G_simplified, out_path)
     print(f"Saved simplified cost graph to {out_path}")
 
