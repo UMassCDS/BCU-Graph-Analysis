@@ -13,7 +13,6 @@ from bcu_analysis.node_accessibility.accessibility import (
     physical_segment_id,
 )
 
-
 INPUT_GRAPH_PATH = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified.graphml")
 
 OUTPUT_GRAPH_PATH = Path(
