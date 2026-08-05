@@ -45,20 +45,14 @@ The analysis is organized in stages, each as a subpackage under `src/bcu_analysi
 
 1. Set up a Conda environent:
    ```
-   conda env create -f environment.yml
+   conda create -n bcu_graph_analysis python=3.12
    conda activate bcu_graph_analysis
    ```
 
-### Specifying Requirements
-
-Dependencies are declared in `pyproject.toml`:
-- `dependencies` — runtime libraries (numpy, pandas, geopandas, osmnx, networkx,
-  shapely, pyproj, scipy, pyyaml, matplotlib, requests, pyarrow).
-- `optional-dependencies.test` — pytest.
-- `optional-dependencies.dev` — tooling for development and visualization (ruff,
-  jupyter, seaborn, folium, branca, sphinx).
-
-`environment.yml` pins the full conda environment for reproducible install
+2. Install the project:
+   ```
+   python -m pip install -e '.[test,dev]'
+   ```
 
 ## Running the analyses
 
@@ -109,7 +103,6 @@ writes the combined OD demand CSV consumed by the one-way analysis.
 │   └── census_assignment.md
 ├── tests
 │   └── test_census_assignment.py
-├── environment.yml                       # Conda environment (bcu_graph_analysis)
 ├── pyproject.toml                        # Metadata, dependencies, build config
 ├── CHANGELOG.md
 ├── CONTRIBUTIONS.md
