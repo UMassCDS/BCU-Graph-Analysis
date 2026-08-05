@@ -156,6 +156,14 @@ def prepare_predictors(
             "10 percentage-point increase",
         )
 
+    # White population share and people-of-color share are exact
+    # complements, so retain only the people-of-color specification.
+    if "share_people_of_color" in predictors:
+        predictors.pop(
+            "share_non_hispanic_white",
+            None,
+        )
+
     # Add median household income, measured per $10,000.
     for column in data.columns:
         cleaned = clean_name(column)
@@ -180,8 +188,8 @@ def prepare_predictors(
             )
             break
 
-    # Fallback for person-count variables when no percentage column
-    # was created. This uses assigned population as the denominator.
+    # Fall back to ratios calculated from assigned counts only
+    # when the corresponding prepared share or rate is absent.
     population_column = find_first(
         list(data.columns),
         ("assigned", "population"),
@@ -193,56 +201,128 @@ def prepare_predictors(
             ("total", "population"),
         )
 
+    fallback_specs = []
+
     if population_column is not None:
-        denominator = numeric(data[population_column]).replace(
+        fallback_specs.extend(
+            [
+                (
+                    "share_under_18",
+                    "assigned_age_under_18",
+                    population_column,
+                ),
+                (
+                    "share_age_18_to_64",
+                    "assigned_age_18_to_64",
+                    population_column,
+                ),
+                (
+                    "share_age_65_plus",
+                    "assigned_age_65_plus",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_white",
+                    "assigned_non_hispanic_white",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_black",
+                    "assigned_non_hispanic_black",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_aian",
+                    "assigned_non_hispanic_aian",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_asian",
+                    "assigned_non_hispanic_asian",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_nhpi",
+                    "assigned_non_hispanic_nhpi",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_other_race",
+                    "assigned_non_hispanic_other_race",
+                    population_column,
+                ),
+                (
+                    "share_non_hispanic_multiracial",
+                    "assigned_non_hispanic_multiracial",
+                    population_column,
+                ),
+                (
+                    "share_hispanic_or_latino",
+                    "assigned_hispanic_or_latino",
+                    population_column,
+                ),
+            ]
+        )
+
+    fallback_specs.extend(
+        [
+            (
+                "poverty_rate",
+                "assigned_below_poverty",
+                "assigned_poverty_universe",
+            ),
+            (
+                "zero_vehicle_household_rate",
+                "assigned_zero_vehicle_households",
+                "assigned_vehicle_households",
+            ),
+            (
+                "renter_rate",
+                "assigned_renter_occupied_units",
+                "assigned_occupied_housing_units",
+            ),
+            (
+                "disability_rate",
+                "assigned_people_with_disability",
+                "assigned_disability_universe",
+            ),
+            (
+                "limited_english_household_rate",
+                "assigned_limited_english_households",
+                "assigned_limited_english_household_universe",
+            ),
+        ]
+    )
+
+    for (
+        predictor_name,
+        numerator_column,
+        denominator_column,
+    ) in fallback_specs:
+        if predictor_name in predictors:
+            continue
+
+        if numerator_column not in data.columns or denominator_column not in data.columns:
+            continue
+
+        denominator = numeric(data[denominator_column]).replace(
             0,
             np.nan,
         )
 
-        person_count_hints = (
-            "asian",
-            "black",
-            "white",
-            "hispanic",
-            "latino",
-            "native",
-            "pacific",
-            "multiracial",
-            "under_18",
-            "age_65",
-            "disab",
+        values = numeric(data[numerator_column]) / denominator
+        finite = values[np.isfinite(values)]
+
+        if finite.empty:
+            continue
+
+        if float(finite.quantile(0.99)) > 1.2:
+            continue
+
+        predictors[predictor_name] = (
+            values / 0.10,
+            "10 percentage-point increase",
         )
-
-        for column in data.columns:
-            cleaned = clean_name(column)
-
-            if column == population_column:
-                continue
-
-            if column in predictors:
-                continue
-
-            if not looks_demographic(column):
-                continue
-
-            if not any(token in cleaned for token in person_count_hints):
-                continue
-
-            values = numeric(data[column]) / denominator
-            finite = values[np.isfinite(values)]
-
-            if finite.empty:
-                continue
-
-            if float(finite.quantile(0.99)) > 1.2:
-                continue
-
-            predictor_name = f"derived_share__{column}"
-
-            predictors[predictor_name] = (
-                values / 0.10,
-                "10 percentage-point increase",
-            )
 
     return predictors
 
