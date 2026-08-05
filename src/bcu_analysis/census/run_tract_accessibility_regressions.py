@@ -343,7 +343,7 @@ def main() -> None:
 
     results["fdr_adjusted_p_value"] = np.nan
 
-    for _, indexes in results.groupby("model_type").groups.items():
+    for indexes in results.groupby("model_type").groups.values():
         adjusted = multipletests(
             results.loc[
                 indexes,
