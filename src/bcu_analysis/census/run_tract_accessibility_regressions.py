@@ -268,7 +268,7 @@ def fit_regression(
         "standard_error": float(result.bse["predictor"]),
         "p_value": float(result.pvalues["predictor"]),
         "r_squared": float(result.rsquared),
-        "n_tracts": int(len(frame)),
+        "n_tracts": len(frame),
         "represented_population": float(frame["represented_population"].sum()),
         "predictor_mean_raw": float(frame[predictor].mean()),
         "predictor_sd_raw": float(frame[predictor].std()),

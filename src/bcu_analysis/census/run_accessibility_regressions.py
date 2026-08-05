@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -315,7 +315,7 @@ def fit_one_regression(
         "ci_95_low_accessibility_percentage_points": (confidence_low * 100.0),
         "ci_95_high_accessibility_percentage_points": (confidence_high * 100.0),
         "p_value": p_value,
-        "n_nodes": int(len(frame)),
+        "n_nodes": len(frame),
         "represented_population": represented_population,
         "r_squared": float(result.rsquared),
         "direction": ("higher accessibility" if coefficient > 0 else "lower accessibility"),

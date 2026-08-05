@@ -14,7 +14,6 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 
-
 SPECIAL_LABELS = {
     "share_under_18": "Population under age 18",
     "share_age_65_plus": "Population age 65 and older",
