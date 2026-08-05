@@ -23,24 +23,16 @@ SPECIAL_LABELS = {
     "share_non_hispanic_aian": "Non-Hispanic AIAN population",
     "share_non_hispanic_asian": "Non-Hispanic Asian population",
     "share_non_hispanic_nhpi": "Non-Hispanic NHPI population",
-    "share_non_hispanic_other_race": (
-        "Non-Hispanic other-race population"
-    ),
-    "share_non_hispanic_multiracial": (
-        "Non-Hispanic multiracial population"
-    ),
+    "share_non_hispanic_other_race": ("Non-Hispanic other-race population"),
+    "share_non_hispanic_multiracial": ("Non-Hispanic multiracial population"),
     "share_hispanic_or_latino": "Hispanic or Latino population",
     "share_people_of_color": "People-of-color population",
     "poverty_rate": "Poverty rate",
     "zero_vehicle_household_rate": "Zero-vehicle household rate",
     "renter_rate": "Renter household rate",
     "disability_rate": "Disability rate",
-    "limited_english_household_rate": (
-        "Limited-English household rate"
-    ),
-    "dominant_tract_median_household_income": (
-        "Median household income"
-    ),
+    "limited_english_household_rate": ("Limited-English household rate"),
+    "dominant_tract_median_household_income": ("Median household income"),
     "dominant_tract_median_age": "Median age",
 }
 
@@ -91,10 +83,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--title",
-        default=(
-            "Greater Boston Census-Tract Accessibility, "
-            "Demographics, and Regression Results"
-        ),
+        default=("Greater Boston Census-Tract Accessibility, Demographics, and Regression Results"),
     )
 
     return parser.parse_args()
@@ -113,25 +102,17 @@ def normalize_geoid_value(value: object) -> object:
         number = Decimal(text)
 
         if number != number.to_integral_value():
-            raise ValueError(
-                f"Tract GEOID is not integer-like: {value!r}"
-            )
+            raise ValueError(f"Tract GEOID is not integer-like: {value!r}")
 
         result = str(int(number)).zfill(11)
 
         if len(result) != 11:
-            raise ValueError(
-                f"Expected an 11-digit tract GEOID: {value!r}"
-            )
+            raise ValueError(f"Expected an 11-digit tract GEOID: {value!r}")
 
         return result
 
     except (InvalidOperation, ValueError):
-        digits = "".join(
-            character
-            for character in text
-            if character.isdigit()
-        )
+        digits = "".join(character for character in text if character.isdigit())
 
         if len(digits) == 11:
             return digits
@@ -141,10 +122,7 @@ def normalize_geoid_value(value: object) -> object:
 
 def normalize_geoid(series: pd.Series) -> pd.Series:
     return pd.Series(
-        [
-            normalize_geoid_value(value)
-            for value in series
-        ],
+        [normalize_geoid_value(value) for value in series],
         index=series.index,
         dtype="string",
     )
@@ -170,10 +148,7 @@ def humanize_predictor(predictor: str) -> str:
 
 
 def predictor_format(predictor: str) -> str:
-    if (
-        predictor.startswith("share_")
-        or predictor.endswith("_rate")
-    ):
+    if predictor.startswith("share_") or predictor.endswith("_rate"):
         return "percent"
 
     if "income" in predictor:
@@ -205,9 +180,7 @@ def require_file(path: Path) -> None:
         raise FileNotFoundError(path)
 
     if not path.is_file():
-        raise ValueError(
-            f"Expected a file, but found: {path}"
-        )
+        raise ValueError(f"Expected a file, but found: {path}")
 
 
 def read_tract_data(path: Path) -> pd.DataFrame:
@@ -229,13 +202,9 @@ def read_tract_data(path: Path) -> pd.DataFrame:
     missing = required - set(data.columns)
 
     if missing:
-        raise ValueError(
-            f"{path} is missing columns: {sorted(missing)}"
-        )
+        raise ValueError(f"{path} is missing columns: {sorted(missing)}")
 
-    data["tract_geoid"] = normalize_geoid(
-        data["dominant_tract_geoid"]
-    )
+    data["tract_geoid"] = normalize_geoid(data["dominant_tract_geoid"])
 
     if data["tract_geoid"].isna().any():
         bad_values = data.loc[
@@ -243,15 +212,10 @@ def read_tract_data(path: Path) -> pd.DataFrame:
             "dominant_tract_geoid",
         ].head(10)
 
-        raise ValueError(
-            "Could not normalize some tract GEOIDs:\n"
-            f"{bad_values.to_string(index=False)}"
-        )
+        raise ValueError(f"Could not normalize some tract GEOIDs:\n{bad_values.to_string(index=False)}")
 
     if data["tract_geoid"].duplicated().any():
-        raise ValueError(
-            f"Duplicate tract GEOIDs were found in {path}"
-        )
+        raise ValueError(f"Duplicate tract GEOIDs were found in {path}")
 
     numeric_columns = [
         "represented_population",
@@ -266,18 +230,12 @@ def read_tract_data(path: Path) -> pd.DataFrame:
         )
 
     if not data["tract_accessibility"].between(0, 1).all():
-        raise ValueError(
-            f"Accessibility values outside [0, 1] in {path}"
-        )
+        raise ValueError(f"Accessibility values outside [0, 1] in {path}")
 
     if not (data["represented_population"] > 0).all():
-        raise ValueError(
-            f"Nonpositive represented population in {path}"
-        )
+        raise ValueError(f"Nonpositive represented population in {path}")
 
-    return data.sort_values(
-        "tract_geoid"
-    ).reset_index(drop=True)
+    return data.sort_values("tract_geoid").reset_index(drop=True)
 
 
 def read_regression_results(path: Path) -> pd.DataFrame:
@@ -300,25 +258,15 @@ def read_regression_results(path: Path) -> pd.DataFrame:
     missing = required - set(results.columns)
 
     if missing:
-        raise ValueError(
-            f"{path} is missing columns: {sorted(missing)}"
-        )
+        raise ValueError(f"{path} is missing columns: {sorted(missing)}")
 
-    county_adjusted = results.loc[
-        results["model_type"]
-        .astype(str)
-        .eq("county_adjusted")
-    ].copy()
+    county_adjusted = results.loc[results["model_type"].astype(str).eq("county_adjusted")].copy()
 
     if county_adjusted.empty:
-        raise ValueError(
-            f"No county-adjusted results found in {path}"
-        )
+        raise ValueError(f"No county-adjusted results found in {path}")
 
     if county_adjusted["predictor"].duplicated().any():
-        raise ValueError(
-            f"Duplicate county-adjusted predictors in {path}"
-        )
+        raise ValueError(f"Duplicate county-adjusted predictors in {path}")
 
     return county_adjusted.reset_index(drop=True)
 
@@ -329,33 +277,20 @@ def identify_predictors(
     baseline_results: pd.DataFrame,
     excluded_results: pd.DataFrame,
 ) -> list[str]:
-    baseline_result_predictors = set(
-        baseline_results["predictor"].astype(str)
-    )
+    baseline_result_predictors = set(baseline_results["predictor"].astype(str))
 
-    excluded_result_predictors = set(
-        excluded_results["predictor"].astype(str)
-    )
+    excluded_result_predictors = set(excluded_results["predictor"].astype(str))
 
-    common_result_predictors = (
-        baseline_result_predictors
-        & excluded_result_predictors
-    )
+    common_result_predictors = baseline_result_predictors & excluded_result_predictors
 
     predictors = [
         column
         for column in baseline_data.columns
-        if (
-            column in common_result_predictors
-            and column in excluded_data.columns
-        )
+        if (column in common_result_predictors and column in excluded_data.columns)
     ]
 
     if not predictors:
-        raise ValueError(
-            "No common tract-level regression predictors "
-            "were found."
-        )
+        raise ValueError("No common tract-level regression predictors were found.")
 
     return predictors
 
@@ -366,24 +301,13 @@ def verify_matched_design(
     predictors: list[str],
 ) -> None:
     if len(baseline) != len(excluded):
-        raise ValueError(
-            "Baseline and LTS-0-excluded datasets have "
-            "different row counts."
-        )
+        raise ValueError("Baseline and LTS-0-excluded datasets have different row counts.")
 
-    if not baseline["tract_geoid"].equals(
-        excluded["tract_geoid"]
-    ):
-        raise ValueError(
-            "Baseline and LTS-0-excluded tract IDs differ."
-        )
+    if not baseline["tract_geoid"].equals(excluded["tract_geoid"]):
+        raise ValueError("Baseline and LTS-0-excluded tract IDs differ.")
 
-    if not baseline["county"].astype("string").equals(
-        excluded["county"].astype("string")
-    ):
-        raise ValueError(
-            "County assignments differ between scenarios."
-        )
+    if not baseline["county"].astype("string").equals(excluded["county"].astype("string")):
+        raise ValueError("County assignments differ between scenarios.")
 
     comparison_columns = [
         "represented_population",
@@ -409,10 +333,7 @@ def verify_matched_design(
             atol=1e-10,
             equal_nan=True,
         ):
-            raise ValueError(
-                "Matched-design values differ for column: "
-                f"{column}"
-            )
+            raise ValueError(f"Matched-design values differ for column: {column}")
 
 
 def build_comparison_table(
@@ -430,17 +351,12 @@ def build_comparison_table(
         ]
     ].copy()
 
-    comparison["accessibility_baseline"] = (
-        baseline["tract_accessibility"].to_numpy()
-    )
+    comparison["accessibility_baseline"] = baseline["tract_accessibility"].to_numpy()
 
-    comparison["accessibility_exclude_lts0"] = (
-        excluded["tract_accessibility"].to_numpy()
-    )
+    comparison["accessibility_exclude_lts0"] = excluded["tract_accessibility"].to_numpy()
 
     comparison["accessibility_change"] = (
-        comparison["accessibility_exclude_lts0"]
-        - comparison["accessibility_baseline"]
+        comparison["accessibility_exclude_lts0"] - comparison["accessibility_baseline"]
     )
 
     return comparison
@@ -462,19 +378,13 @@ def detect_geometry_geoid_column(
         if column in geometry.columns:
             return column
 
-    candidates = [
-        column
-        for column in geometry.columns
-        if "geoid" in column.lower()
-    ]
+    candidates = [column for column in geometry.columns if "geoid" in column.lower()]
 
     if len(candidates) == 1:
         return candidates[0]
 
     raise ValueError(
-        "Could not identify a unique GEOID column in the "
-        "tract geometry file.\n"
-        f"Columns: {list(geometry.columns)}"
+        f"Could not identify a unique GEOID column in the tract geometry file.\nColumns: {list(geometry.columns)}"
     )
 
 
@@ -487,17 +397,11 @@ def attach_geometry(
     geometry = gpd.read_file(geometry_path)
 
     if geometry.crs is None:
-        raise ValueError(
-            "The tract geometry file does not define a CRS."
-        )
+        raise ValueError("The tract geometry file does not define a CRS.")
 
-    geoid_column = detect_geometry_geoid_column(
-        geometry
-    )
+    geoid_column = detect_geometry_geoid_column(geometry)
 
-    geometry["tract_geoid"] = normalize_geoid(
-        geometry[geoid_column]
-    )
+    geometry["tract_geoid"] = normalize_geoid(geometry[geoid_column])
 
     geometry = geometry.loc[
         geometry["tract_geoid"].notna(),
@@ -505,22 +409,12 @@ def attach_geometry(
     ].copy()
 
     if geometry["tract_geoid"].duplicated().any():
-        raise ValueError(
-            "Duplicate tract GEOIDs were found in the "
-            "geometry file."
-        )
+        raise ValueError("Duplicate tract GEOIDs were found in the geometry file.")
 
-    missing_geometry = sorted(
-        set(comparison["tract_geoid"])
-        - set(geometry["tract_geoid"])
-    )
+    missing_geometry = sorted(set(comparison["tract_geoid"]) - set(geometry["tract_geoid"]))
 
     if missing_geometry:
-        raise ValueError(
-            f"{len(missing_geometry)} matched tracts have no "
-            "geometry. Examples: "
-            f"{missing_geometry[:10]}"
-        )
+        raise ValueError(f"{len(missing_geometry)} matched tracts have no geometry. Examples: {missing_geometry[:10]}")
 
     mapped = geometry.merge(
         comparison,
@@ -536,50 +430,30 @@ def attach_geometry(
     )
 
     if len(mapped) != len(comparison):
-        raise ValueError(
-            f"Expected {len(comparison)} mapped tracts but "
-            f"found {len(mapped)}."
-        )
+        raise ValueError(f"Expected {len(comparison)} mapped tracts but found {len(mapped)}.")
 
-    invalid_count = int(
-        (~mapped.geometry.is_valid).sum()
-    )
+    invalid_count = int((~mapped.geometry.is_valid).sum())
 
     if invalid_count:
-        mapped["geometry"] = (
-            mapped.geometry.make_valid()
-        )
+        mapped["geometry"] = mapped.geometry.make_valid()
 
     if mapped.geometry.isna().any():
-        raise ValueError(
-            "Missing geometry after tract join."
-        )
+        raise ValueError("Missing geometry after tract join.")
 
     if (~mapped.geometry.is_valid).any():
-        raise ValueError(
-            "Invalid geometry remains after repair."
-        )
+        raise ValueError("Invalid geometry remains after repair.")
 
-    return mapped.sort_values(
-        "tract_geoid"
-    ).reset_index(drop=True)
+    return mapped.sort_values("tract_geoid").reset_index(drop=True)
 
 
 def result_row(
     results: pd.DataFrame,
     predictor: str,
 ) -> pd.Series:
-    rows = results.loc[
-        results["predictor"]
-        .astype(str)
-        .eq(predictor)
-    ]
+    rows = results.loc[results["predictor"].astype(str).eq(predictor)]
 
     if len(rows) != 1:
-        raise ValueError(
-            "Expected exactly one county-adjusted result for "
-            f"{predictor}; found {len(rows)}."
-        )
+        raise ValueError(f"Expected exactly one county-adjusted result for {predictor}; found {len(rows)}.")
 
     return rows.iloc[0]
 
@@ -619,9 +493,7 @@ def fit_residuals(
     frame = frame.loc[valid].copy()
 
     if frame.empty:
-        raise ValueError(
-            f"No valid rows for predictor {predictor}."
-        )
+        raise ValueError(f"No valid rows for predictor {predictor}.")
 
     design = pd.DataFrame(
         {
@@ -647,10 +519,7 @@ def fit_residuals(
         has_constant="add",
     )
 
-    weights = (
-        frame["represented_population"]
-        / frame["represented_population"].mean()
-    )
+    weights = frame["represented_population"] / frame["represented_population"].mean()
 
     model = sm.WLS(
         frame[outcome].astype(float),
@@ -658,17 +527,11 @@ def fit_residuals(
         weights=weights.astype(float),
     ).fit()
 
-    scale = effect_scale(
-        saved_result["effect_unit"]
-    )
+    scale = effect_scale(saved_result["effect_unit"])
 
-    refitted_effect = float(
-        model.params["predictor"] * scale
-    )
+    refitted_effect = float(model.params["predictor"] * scale)
 
-    saved_effect = float(
-        saved_result["coefficient"]
-    )
+    saved_effect = float(saved_result["coefficient"])
 
     if not np.isclose(
         refitted_effect,
@@ -695,14 +558,9 @@ def fit_residuals(
         dtype=float,
     )
 
-    predictions.loc[frame.index] = (
-        model.predict(design)
-    )
+    predictions.loc[frame.index] = model.predict(design)
 
-    residuals.loc[frame.index] = (
-        frame[outcome]
-        - predictions.loc[frame.index]
-    )
+    residuals.loc[frame.index] = frame[outcome] - predictions.loc[frame.index]
 
     weighted_residual_mean = float(
         np.average(
@@ -741,60 +599,23 @@ def build_regression_summary(
             "effect_unit": str(baseline["effect_unit"]),
             "format": predictor_format(predictor),
             "baseline": {
-                "effect_pp": float(
-                    baseline[
-                        "coefficient_accessibility_percentage_points"
-                    ]
-                ),
-                "ci_low_pp": float(
-                    baseline[
-                        "ci_95_low_accessibility_percentage_points"
-                    ]
-                ),
-                "ci_high_pp": float(
-                    baseline[
-                        "ci_95_high_accessibility_percentage_points"
-                    ]
-                ),
-                "fdr": float(
-                    baseline["fdr_adjusted_p_value"]
-                ),
-                "significant": bool(
-                    baseline[
-                        "statistically_significant_fdr_0_05"
-                    ]
-                ),
+                "effect_pp": float(baseline["coefficient_accessibility_percentage_points"]),
+                "ci_low_pp": float(baseline["ci_95_low_accessibility_percentage_points"]),
+                "ci_high_pp": float(baseline["ci_95_high_accessibility_percentage_points"]),
+                "fdr": float(baseline["fdr_adjusted_p_value"]),
+                "significant": bool(baseline["statistically_significant_fdr_0_05"]),
             },
             "exclude_lts0": {
-                "effect_pp": float(
-                    excluded[
-                        "coefficient_accessibility_percentage_points"
-                    ]
-                ),
-                "ci_low_pp": float(
-                    excluded[
-                        "ci_95_low_accessibility_percentage_points"
-                    ]
-                ),
-                "ci_high_pp": float(
-                    excluded[
-                        "ci_95_high_accessibility_percentage_points"
-                    ]
-                ),
-                "fdr": float(
-                    excluded["fdr_adjusted_p_value"]
-                ),
-                "significant": bool(
-                    excluded[
-                        "statistically_significant_fdr_0_05"
-                    ]
-                ),
+                "effect_pp": float(excluded["coefficient_accessibility_percentage_points"]),
+                "ci_low_pp": float(excluded["ci_95_low_accessibility_percentage_points"]),
+                "ci_high_pp": float(excluded["ci_95_high_accessibility_percentage_points"]),
+                "fdr": float(excluded["fdr_adjusted_p_value"]),
+                "significant": bool(excluded["statistically_significant_fdr_0_05"]),
             },
         }
 
         summary[predictor]["effect_change_pp"] = (
-            summary[predictor]["exclude_lts0"]["effect_pp"]
-            - summary[predictor]["baseline"]["effect_pp"]
+            summary[predictor]["exclude_lts0"]["effect_pp"] - summary[predictor]["baseline"]["effect_pp"]
         )
 
     return summary
@@ -840,28 +661,14 @@ def add_regression_columns(
                 saved_result=saved_result,
             )
 
-            mapped[
-                f"predicted_{scenario}__{predictor}"
-            ] = predictions
+            mapped[f"predicted_{scenario}__{predictor}"] = predictions
 
-            mapped[
-                f"residual_{scenario}__{predictor}"
-            ] = residuals
+            mapped[f"residual_{scenario}__{predictor}"] = residuals
 
-            validation_lines.append(
-                f"{scenario} {predictor} weighted residual "
-                f"mean: {weighted_residual_mean:.12g}"
-            )
+            validation_lines.append(f"{scenario} {predictor} weighted residual mean: {weighted_residual_mean:.12g}")
 
-        mapped[
-            f"residual_change__{predictor}"
-        ] = (
-            mapped[
-                f"residual_exclude_lts0__{predictor}"
-            ]
-            - mapped[
-                f"residual_baseline__{predictor}"
-            ]
+        mapped[f"residual_change__{predictor}"] = (
+            mapped[f"residual_exclude_lts0__{predictor}"] - mapped[f"residual_baseline__{predictor}"]
         )
 
     return mapped, validation_lines
@@ -870,16 +677,12 @@ def add_regression_columns(
 def symmetric_limit(
     values: np.ndarray,
 ) -> float:
-    finite = values[
-        np.isfinite(values)
-    ]
+    finite = values[np.isfinite(values)]
 
     if finite.size == 0:
         return 1.0
 
-    limit = float(
-        np.max(np.abs(finite))
-    )
+    limit = float(np.max(np.abs(finite)))
 
     return max(limit, 1e-9)
 
@@ -892,9 +695,7 @@ def finite_range(
         errors="coerce",
     )
 
-    finite = numeric[
-        np.isfinite(numeric)
-    ]
+    finite = numeric[np.isfinite(numeric)]
 
     if finite.empty:
         return 0.0, 1.0
@@ -937,11 +738,7 @@ def build_metric_config(
         "predictor": None,
     }
 
-    accessibility_change_limit = symmetric_limit(
-        mapped["accessibility_change"].to_numpy(
-            dtype=float
-        )
-    )
+    accessibility_change_limit = symmetric_limit(mapped["accessibility_change"].to_numpy(dtype=float))
 
     metrics["accessibility_change"] = {
         "label": "Accessibility change after excluding LTS 0",
@@ -955,22 +752,16 @@ def build_metric_config(
     }
 
     for predictor in predictors:
-        minimum, maximum = finite_range(
-            mapped[predictor]
-        )
+        minimum, maximum = finite_range(mapped[predictor])
 
-        metric_format = regression_summary[
-            predictor
-        ]["format"]
+        metric_format = regression_summary[predictor]["format"]
 
         if metric_format == "percent":
             minimum = 0.0
             maximum = max(maximum, 1e-9)
 
         metrics[predictor] = {
-            "label": regression_summary[
-                predictor
-            ]["label"],
+            "label": regression_summary[predictor]["label"],
             "group": "Census demographics",
             "palette": "sequential",
             "format": metric_format,
@@ -981,17 +772,11 @@ def build_metric_config(
         }
 
     for predictor in predictors:
-        baseline_column = (
-            f"residual_baseline__{predictor}"
-        )
+        baseline_column = f"residual_baseline__{predictor}"
 
-        excluded_column = (
-            f"residual_exclude_lts0__{predictor}"
-        )
+        excluded_column = f"residual_exclude_lts0__{predictor}"
 
-        change_column = (
-            f"residual_change__{predictor}"
-        )
+        change_column = f"residual_change__{predictor}"
 
         residual_limit = symmetric_limit(
             mapped[
@@ -1003,14 +788,10 @@ def build_metric_config(
             ].to_numpy(dtype=float)
         )
 
-        predictor_label = regression_summary[
-            predictor
-        ]["label"]
+        predictor_label = regression_summary[predictor]["label"]
 
         metrics[baseline_column] = {
-            "label": (
-                f"{predictor_label}: baseline regression residual"
-            ),
+            "label": (f"{predictor_label}: baseline regression residual"),
             "group": "Regression residuals",
             "palette": "diverging",
             "format": "decimal",
@@ -1021,10 +802,7 @@ def build_metric_config(
         }
 
         metrics[excluded_column] = {
-            "label": (
-                f"{predictor_label}: LTS-0-excluded "
-                "regression residual"
-            ),
+            "label": (f"{predictor_label}: LTS-0-excluded regression residual"),
             "group": "Regression residuals",
             "palette": "diverging",
             "format": "decimal",
@@ -1035,9 +813,7 @@ def build_metric_config(
         }
 
         metrics[change_column] = {
-            "label": (
-                f"{predictor_label}: residual change"
-            ),
+            "label": (f"{predictor_label}: residual change"),
             "group": "Regression residuals",
             "palette": "diverging",
             "format": "decimal",
@@ -1061,15 +837,9 @@ def save_spatial_outputs(
         exist_ok=True,
     )
 
-    gpkg_path = (
-        data_directory
-        / "tract_regression_demographics.gpkg"
-    )
+    gpkg_path = data_directory / "tract_regression_demographics.gpkg"
 
-    geojson_path = (
-        data_directory
-        / "tract_regression_demographics.geojson"
-    )
+    geojson_path = data_directory / "tract_regression_demographics.geojson"
 
     if gpkg_path.exists():
         gpkg_path.unlink()
@@ -1084,9 +854,7 @@ def save_spatial_outputs(
         index=False,
     )
 
-    mapped.to_crs(
-        epsg=4326
-    ).to_file(
+    mapped.to_crs(epsg=4326).to_file(
         geojson_path,
         driver="GeoJSON",
         index=False,
@@ -1102,27 +870,18 @@ def create_interactive_html(
     output_root: Path,
     title: str,
 ) -> Path:
-    interactive_directory = (
-        output_root / "interactive"
-    )
+    interactive_directory = output_root / "interactive"
 
     interactive_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    output_path = (
-        interactive_directory
-        / "tract_regression_demographics_interactive.html"
-    )
+    output_path = interactive_directory / "tract_regression_demographics_interactive.html"
 
-    web_data = mapped.to_crs(
-        epsg=4326
-    ).copy()
+    web_data = mapped.to_crs(epsg=4326).copy()
 
-    geojson_text = web_data.to_json(
-        drop_id=True
-    )
+    geojson_text = web_data.to_json(drop_id=True)
 
     metric_json = json.dumps(
         metrics,
@@ -1929,19 +1688,14 @@ def write_validation_report(
     geojson_path: Path,
     html_path: Path,
 ) -> Path:
-    validation_directory = (
-        args.output_root / "validation"
-    )
+    validation_directory = args.output_root / "validation"
 
     validation_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    validation_path = (
-        validation_directory
-        / "tract_regression_demographics_validation.txt"
-    )
+    validation_path = validation_directory / "tract_regression_demographics_validation.txt"
 
     lines = [
         "TRACT REGRESSION AND DEMOGRAPHICS MAP VALIDATION",
@@ -1958,26 +1712,11 @@ def write_validation_report(
         "DATA VALIDATION",
         "---------------",
         f"Mapped tracts: {len(mapped):,}",
-        (
-            "Unique tract GEOIDs: "
-            f"{mapped['tract_geoid'].nunique():,}"
-        ),
-        (
-            "Duplicate tract GEOIDs: "
-            f"{mapped['tract_geoid'].duplicated().sum():,}"
-        ),
-        (
-            "Missing geometries: "
-            f"{mapped.geometry.isna().sum():,}"
-        ),
-        (
-            "Invalid geometries: "
-            f"{(~mapped.geometry.is_valid).sum():,}"
-        ),
-        (
-            "Represented population: "
-            f"{mapped['represented_population'].sum():,.6f}"
-        ),
+        (f"Unique tract GEOIDs: {mapped['tract_geoid'].nunique():,}"),
+        (f"Duplicate tract GEOIDs: {mapped['tract_geoid'].duplicated().sum():,}"),
+        (f"Missing geometries: {mapped.geometry.isna().sum():,}"),
+        (f"Invalid geometries: {(~mapped.geometry.is_valid).sum():,}"),
+        (f"Represented population: {mapped['represented_population'].sum():,.6f}"),
         f"Regression predictors included: {len(predictors):,}",
         f"Interactive map variables included: {len(metrics):,}",
         "",
@@ -2014,21 +1753,13 @@ def main() -> None:
 
     print("Loading matched tract datasets...")
 
-    baseline_data = read_tract_data(
-        args.baseline_tract_path
-    )
+    baseline_data = read_tract_data(args.baseline_tract_path)
 
-    excluded_data = read_tract_data(
-        args.exclude_tract_path
-    )
+    excluded_data = read_tract_data(args.exclude_tract_path)
 
-    baseline_results = read_regression_results(
-        args.baseline_results_path
-    )
+    baseline_results = read_regression_results(args.baseline_results_path)
 
-    excluded_results = read_regression_results(
-        args.exclude_results_path
-    )
+    excluded_results = read_regression_results(args.exclude_results_path)
 
     predictors = identify_predictors(
         baseline_data=baseline_data,
@@ -2037,10 +1768,7 @@ def main() -> None:
         excluded_results=excluded_results,
     )
 
-    print(
-        f"County-adjusted predictors found: "
-        f"{len(predictors):,}"
-    )
+    print(f"County-adjusted predictors found: {len(predictors):,}")
 
     verify_matched_design(
         baseline=baseline_data,
@@ -2063,21 +1791,17 @@ def main() -> None:
 
     print("Fitting matched regression residuals...")
 
-    mapped, regression_validation = (
-        add_regression_columns(
-            mapped=mapped,
-            baseline_results=baseline_results,
-            excluded_results=excluded_results,
-            predictors=predictors,
-        )
+    mapped, regression_validation = add_regression_columns(
+        mapped=mapped,
+        baseline_results=baseline_results,
+        excluded_results=excluded_results,
+        predictors=predictors,
     )
 
-    regression_summary = (
-        build_regression_summary(
-            baseline_results=baseline_results,
-            excluded_results=excluded_results,
-            predictors=predictors,
-        )
+    regression_summary = build_regression_summary(
+        baseline_results=baseline_results,
+        excluded_results=excluded_results,
+        predictors=predictors,
     )
 
     metrics = build_metric_config(
@@ -2086,18 +1810,13 @@ def main() -> None:
         regression_summary=regression_summary,
     )
 
-    print(
-        f"Interactive variables created: "
-        f"{len(metrics):,}"
-    )
+    print(f"Interactive variables created: {len(metrics):,}")
 
     print("Saving spatial data...")
 
-    gpkg_path, geojson_path = (
-        save_spatial_outputs(
-            mapped=mapped,
-            output_root=args.output_root,
-        )
+    gpkg_path, geojson_path = save_spatial_outputs(
+        mapped=mapped,
+        output_root=args.output_root,
     )
 
     print("Creating comprehensive interactive map...")
