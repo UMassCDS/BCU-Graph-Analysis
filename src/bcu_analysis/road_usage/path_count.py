@@ -14,14 +14,14 @@ import pandas as pd
 
 
 # Configuration
-OD_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/census/")
-GRAPH_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/")
+OD_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/output/demand_scenarios/demand_scenario_1/")
+GRAPH_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/output/cost_scenarios/cost_scenario_1")
 OUTPUT_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/")
 
-GRAPH_PATH = GRAPH_FOLDER / "boston_only_cost_simplified.graphml"
-OD_PATH = OD_FOLDER / "boston_only_od_demand.csv"
-OUTPUT_GRAPH_PATH = OUTPUT_FOLDER / "boston_only_cost_with_pathCount.graphml"
-FAILED_OD_PATH = OUTPUT_FOLDER / "boston_only_unroutable_od_pairs.csv"
+GRAPH_PATH = GRAPH_FOLDER / "greater_boston_cost_scenario_1_simplified.graphml"
+OD_PATH = OD_FOLDER / "greater_boston_all_pairs_demand_scenario_1.csv"
+OUTPUT_GRAPH_PATH = OUTPUT_FOLDER / "greater_boston_cost_with_pathCount_demand_scenario_1.graphml"
+FAILED_OD_PATH = OUTPUT_FOLDER / "greater_boston_unroutable_od_pairs_demand_scenario_1.csv"
 
 # Each worker receives several origins at once.
 # Increasing this reduces multiprocessing communication but may worsen
