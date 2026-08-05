@@ -156,14 +156,6 @@ def prepare_predictors(
             "10 percentage-point increase",
         )
 
-    # White population share and people-of-color share are exact
-    # complements, so retain only the people-of-color specification.
-    if "share_people_of_color" in predictors:
-        predictors.pop(
-            "share_non_hispanic_white",
-            None,
-        )
-
     # Add median household income, measured per $10,000.
     for column in data.columns:
         cleaned = clean_name(column)
@@ -219,11 +211,6 @@ def prepare_predictors(
                 (
                     "share_age_65_plus",
                     "assigned_age_65_plus",
-                    population_column,
-                ),
-                (
-                    "share_non_hispanic_white",
-                    "assigned_non_hispanic_white",
                     population_column,
                 ),
                 (
@@ -322,6 +309,14 @@ def prepare_predictors(
         predictors[predictor_name] = (
             values / 0.10,
             "10 percentage-point increase",
+        )
+
+    # White population share and people-of-color share are exact
+    # complements, so retain only the people-of-color specification.
+    if "share_people_of_color" in predictors:
+        predictors.pop(
+            "share_non_hispanic_white",
+            None,
         )
 
     return predictors
