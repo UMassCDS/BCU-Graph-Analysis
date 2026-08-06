@@ -39,33 +39,24 @@ SPECIAL_LABELS = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Create a matched Census-tract interactive map containing "
-            "accessibility, demographics, and regression residuals."
+            "Create a Census-tract interactive map containing "
+            "LTS-0-excluded accessibility, demographics, and "
+            "regression residuals."
         )
     )
 
     parser.add_argument(
-        "--baseline-tract-path",
+        "--tract-path",
         type=Path,
         required=True,
+        help=("Tract-level regression data produced from accessibility results that exclude LTS 0."),
     )
 
     parser.add_argument(
-        "--exclude-tract-path",
+        "--results-path",
         type=Path,
         required=True,
-    )
-
-    parser.add_argument(
-        "--baseline-results-path",
-        type=Path,
-        required=True,
-    )
-
-    parser.add_argument(
-        "--exclude-results-path",
-        type=Path,
-        required=True,
+        help=("Tract-level regression results produced from accessibility results that exclude LTS 0."),
     )
 
     parser.add_argument(
@@ -82,7 +73,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--title",
-        default=("Greater Boston Census-Tract Accessibility, Demographics, and Regression Results"),
+        default=("Greater Boston Census-Tract Accessibility, Demographics, and Regression Results — Excluding LTS 0"),
     )
 
     return parser.parse_args()
@@ -271,76 +262,24 @@ def read_regression_results(path: Path) -> pd.DataFrame:
 
 
 def identify_predictors(
-    baseline_data: pd.DataFrame,
-    excluded_data: pd.DataFrame,
-    baseline_results: pd.DataFrame,
-    excluded_results: pd.DataFrame,
+    tract_data: pd.DataFrame,
+    results: pd.DataFrame,
 ) -> list[str]:
-    baseline_result_predictors = set(baseline_results["predictor"].astype(str))
+    result_predictors = set(results["predictor"].astype(str))
 
-    excluded_result_predictors = set(excluded_results["predictor"].astype(str))
-
-    common_result_predictors = baseline_result_predictors & excluded_result_predictors
-
-    predictors = [
-        column
-        for column in baseline_data.columns
-        if (column in common_result_predictors and column in excluded_data.columns)
-    ]
+    predictors = [column for column in tract_data.columns if column in result_predictors]
 
     if not predictors:
-        raise ValueError("No common tract-level regression predictors were found.")
+        raise ValueError("No tract-level regression predictors were found.")
 
     return predictors
 
 
-def verify_matched_design(
-    baseline: pd.DataFrame,
-    excluded: pd.DataFrame,
-    predictors: list[str],
-) -> None:
-    if len(baseline) != len(excluded):
-        raise ValueError("Baseline and LTS-0-excluded datasets have different row counts.")
-
-    if not baseline["tract_geoid"].equals(excluded["tract_geoid"]):
-        raise ValueError("Baseline and LTS-0-excluded tract IDs differ.")
-
-    if not baseline["county"].astype("string").equals(excluded["county"].astype("string")):
-        raise ValueError("County assignments differ between scenarios.")
-
-    comparison_columns = [
-        "represented_population",
-        "n_nodes",
-        *predictors,
-    ]
-
-    for column in comparison_columns:
-        baseline_values = pd.to_numeric(
-            baseline[column],
-            errors="coerce",
-        )
-
-        excluded_values = pd.to_numeric(
-            excluded[column],
-            errors="coerce",
-        )
-
-        if not np.allclose(
-            baseline_values,
-            excluded_values,
-            rtol=1e-10,
-            atol=1e-10,
-            equal_nan=True,
-        ):
-            raise ValueError(f"Matched-design values differ for column: {column}")
-
-
-def build_comparison_table(
-    baseline: pd.DataFrame,
-    excluded: pd.DataFrame,
+def build_map_table(
+    tract_data: pd.DataFrame,
     predictors: list[str],
 ) -> pd.DataFrame:
-    comparison = baseline[
+    map_data = tract_data[
         [
             "tract_geoid",
             "county",
@@ -350,15 +289,9 @@ def build_comparison_table(
         ]
     ].copy()
 
-    comparison["accessibility_baseline"] = baseline["tract_accessibility"].to_numpy()
+    map_data["accessibility_exclude_lts0"] = tract_data["tract_accessibility"].to_numpy()
 
-    comparison["accessibility_exclude_lts0"] = excluded["tract_accessibility"].to_numpy()
-
-    comparison["accessibility_change"] = (
-        comparison["accessibility_exclude_lts0"] - comparison["accessibility_baseline"]
-    )
-
-    return comparison
+    return map_data
 
 
 def detect_geometry_geoid_column(
@@ -576,99 +509,62 @@ def fit_residuals(
 
 
 def build_regression_summary(
-    baseline_results: pd.DataFrame,
-    excluded_results: pd.DataFrame,
+    results: pd.DataFrame,
     predictors: list[str],
 ) -> OrderedDict:
     summary: OrderedDict[str, dict] = OrderedDict()
 
     for predictor in predictors:
-        baseline = result_row(
-            baseline_results,
-            predictor,
-        )
-
-        excluded = result_row(
-            excluded_results,
+        result = result_row(
+            results,
             predictor,
         )
 
         summary[predictor] = {
             "label": humanize_predictor(predictor),
-            "effect_unit": str(baseline["effect_unit"]),
+            "effect_unit": str(result["effect_unit"]),
             "format": predictor_format(predictor),
-            "baseline": {
-                "effect_pp": float(baseline["coefficient_accessibility_percentage_points"]),
-                "ci_low_pp": float(baseline["ci_95_low_accessibility_percentage_points"]),
-                "ci_high_pp": float(baseline["ci_95_high_accessibility_percentage_points"]),
-                "fdr": float(baseline["fdr_adjusted_p_value"]),
-                "significant": bool(baseline["statistically_significant_fdr_0_05"]),
-            },
             "exclude_lts0": {
-                "effect_pp": float(excluded["coefficient_accessibility_percentage_points"]),
-                "ci_low_pp": float(excluded["ci_95_low_accessibility_percentage_points"]),
-                "ci_high_pp": float(excluded["ci_95_high_accessibility_percentage_points"]),
-                "fdr": float(excluded["fdr_adjusted_p_value"]),
-                "significant": bool(excluded["statistically_significant_fdr_0_05"]),
+                "effect_pp": float(result["coefficient_accessibility_percentage_points"]),
+                "ci_low_pp": float(result["ci_95_low_accessibility_percentage_points"]),
+                "ci_high_pp": float(result["ci_95_high_accessibility_percentage_points"]),
+                "fdr": float(result["fdr_adjusted_p_value"]),
+                "significant": bool(result["statistically_significant_fdr_0_05"]),
             },
         }
-
-        summary[predictor]["effect_change_pp"] = (
-            summary[predictor]["exclude_lts0"]["effect_pp"] - summary[predictor]["baseline"]["effect_pp"]
-        )
 
     return summary
 
 
 def add_regression_columns(
     mapped: gpd.GeoDataFrame,
-    baseline_results: pd.DataFrame,
-    excluded_results: pd.DataFrame,
+    results: pd.DataFrame,
     predictors: list[str],
 ) -> tuple[gpd.GeoDataFrame, list[str]]:
     validation_lines: list[str] = []
 
-    scenarios = {
-        "baseline": (
-            "accessibility_baseline",
-            baseline_results,
-        ),
-        "exclude_lts0": (
-            "accessibility_exclude_lts0",
-            excluded_results,
-        ),
-    }
-
     for predictor in predictors:
-        for scenario, (
-            outcome,
+        saved_result = result_row(
             results,
-        ) in scenarios.items():
-            saved_result = result_row(
-                results,
-                predictor,
-            )
-
-            (
-                predictions,
-                residuals,
-                weighted_residual_mean,
-            ) = fit_residuals(
-                mapped=mapped,
-                outcome=outcome,
-                predictor=predictor,
-                saved_result=saved_result,
-            )
-
-            mapped[f"predicted_{scenario}__{predictor}"] = predictions
-
-            mapped[f"residual_{scenario}__{predictor}"] = residuals
-
-            validation_lines.append(f"{scenario} {predictor} weighted residual mean: {weighted_residual_mean:.12g}")
-
-        mapped[f"residual_change__{predictor}"] = (
-            mapped[f"residual_exclude_lts0__{predictor}"] - mapped[f"residual_baseline__{predictor}"]
+            predictor,
         )
+
+        (
+            predictions,
+            residuals,
+            weighted_residual_mean,
+        ) = fit_residuals(
+            mapped=mapped,
+            outcome="accessibility_exclude_lts0",
+            predictor=predictor,
+            saved_result=saved_result,
+        )
+
+        mapped[f"predicted_exclude_lts0__{predictor}"] = predictions
+
+        mapped[f"residual_exclude_lts0__{predictor}"] = residuals
+
+        validation_lines.append(f"exclude_lts0 {predictor} weighted residual mean: {weighted_residual_mean:.12g}")
 
     return mapped, validation_lines
 
@@ -715,17 +611,6 @@ def build_metric_config(
 ) -> OrderedDict:
     metrics: OrderedDict[str, dict] = OrderedDict()
 
-    metrics["accessibility_baseline"] = {
-        "label": "Baseline relative accessibility",
-        "group": "Accessibility",
-        "palette": "sequential",
-        "format": "decimal",
-        "min": 0.0,
-        "max": 1.0,
-        "mid": None,
-        "predictor": None,
-    }
-
     metrics["accessibility_exclude_lts0"] = {
         "label": "Relative accessibility excluding LTS 0",
         "group": "Accessibility",
@@ -734,19 +619,6 @@ def build_metric_config(
         "min": 0.0,
         "max": 1.0,
         "mid": None,
-        "predictor": None,
-    }
-
-    accessibility_change_limit = symmetric_limit(mapped["accessibility_change"].to_numpy(dtype=float))
-
-    metrics["accessibility_change"] = {
-        "label": "Accessibility change after excluding LTS 0",
-        "group": "Accessibility",
-        "palette": "diverging",
-        "format": "decimal",
-        "min": -accessibility_change_limit,
-        "max": accessibility_change_limit,
-        "mid": 0.0,
         "predictor": None,
     }
 
@@ -771,48 +643,14 @@ def build_metric_config(
         }
 
     for predictor in predictors:
-        baseline_column = f"residual_baseline__{predictor}"
-
         excluded_column = f"residual_exclude_lts0__{predictor}"
 
-        change_column = f"residual_change__{predictor}"
-
-        residual_limit = symmetric_limit(
-            mapped[
-                [
-                    baseline_column,
-                    excluded_column,
-                    change_column,
-                ]
-            ].to_numpy(dtype=float)
-        )
+        residual_limit = symmetric_limit(mapped[excluded_column].to_numpy(dtype=float))
 
         predictor_label = regression_summary[predictor]["label"]
 
-        metrics[baseline_column] = {
-            "label": (f"{predictor_label}: baseline regression residual"),
-            "group": "Regression residuals",
-            "palette": "diverging",
-            "format": "decimal",
-            "min": -residual_limit,
-            "max": residual_limit,
-            "mid": 0.0,
-            "predictor": predictor,
-        }
-
         metrics[excluded_column] = {
-            "label": (f"{predictor_label}: LTS-0-excluded regression residual"),
-            "group": "Regression residuals",
-            "palette": "diverging",
-            "format": "decimal",
-            "min": -residual_limit,
-            "max": residual_limit,
-            "mid": 0.0,
-            "predictor": predictor,
-        }
-
-        metrics[change_column] = {
-            "label": (f"{predictor_label}: residual change"),
+            "label": (f"{predictor_label}: regression residual excluding LTS 0"),
             "group": "Regression residuals",
             "palette": "diverging",
             "format": "decimal",
@@ -1069,10 +907,9 @@ summary {
         <h1>__TITLE_HTML__</h1>
 
         <p class="small">
-            Matched comparison of __TRACT_COUNT__ Census tracts.
-            Baseline and LTS-0-excluded analyses use the same tracts,
-            demographic values, population weights, and model
-            specifications.
+            Results for __TRACT_COUNT__ Census tracts using relative
+            bicycle accessibility calculated after excluding LTS 0
+            paths.
         </p>
 
         <h2>Map variable</h2>
@@ -1115,9 +952,7 @@ summary {
                         <tr>
                             <th>Predictor</th>
                             <th>Unit</th>
-                            <th>Baseline</th>
-                            <th>FDR</th>
-                            <th>Exclude LTS 0</th>
+                            <th>Coefficient</th>
                             <th>FDR</th>
                         </tr>
                     </thead>
@@ -1168,7 +1003,7 @@ const divergingPalette = [
     "#053061"
 ];
 
-let selectedMetric = "accessibility_change";
+let selectedMetric = "accessibility_exclude_lts0";
 
 function isMissing(value) {
     return value === null
@@ -1294,15 +1129,24 @@ function styleFeature(feature) {
     };
 }
 
+
 function buildTooltip(properties) {
     const config = metricConfig[selectedMetric];
 
     return [
-        '<div class="tooltip-title">' + config.label + "</div>",
-        "<div><b>Tract:</b> " + properties.tract_geoid + "</div>",
-        "<div><b>County:</b> " + properties.county + "</div>",
+        '<div class="tooltip-title">'
+            + config.label
+            + "</div>",
+        "<div><b>Tract:</b> "
+            + properties.tract_geoid
+            + "</div>",
+        "<div><b>County:</b> "
+            + properties.county
+            + "</div>",
         "<div><b>Represented population:</b> "
-            + formatPopulation(properties.represented_population)
+            + formatPopulation(
+                properties.represented_population
+            )
             + "</div>",
         "<hr>",
         "<div><b>Selected value:</b> "
@@ -1311,23 +1155,14 @@ function buildTooltip(properties) {
                 config
             )
             + "</div>",
-        "<div><b>Baseline accessibility:</b> "
-            + Number(
-                properties.accessibility_baseline
-            ).toFixed(3)
-            + "</div>",
-        "<div><b>Exclude-LTS0 accessibility:</b> "
+        "<div><b>Accessibility excluding LTS 0:</b> "
             + Number(
                 properties.accessibility_exclude_lts0
-            ).toFixed(3)
-            + "</div>",
-        "<div><b>Accessibility change:</b> "
-            + Number(
-                properties.accessibility_change
             ).toFixed(3)
             + "</div>"
     ].join("");
 }
+
 
 function updateLegend() {
     const config = metricConfig[selectedMetric];
@@ -1401,6 +1236,7 @@ function regressionBlock(label, result) {
     ].join("");
 }
 
+
 function updateRegressionPanel() {
     const config = metricConfig[selectedMetric];
     const panel = document.getElementById(
@@ -1413,9 +1249,10 @@ function updateRegressionPanel() {
     ) {
         panel.innerHTML = [
             "<b>Accessibility layer</b>",
-            "<p>This layer displays the accessibility outcome itself. ",
-            "Select a Census demographic or regression residual layer ",
-            "to view the corresponding county-adjusted coefficient.</p>"
+            "<p>This layer displays relative accessibility ",
+            "after excluding LTS 0 paths. Select a Census ",
+            "demographic or regression residual layer to view ",
+            "the corresponding county-adjusted coefficient.</p>"
         ].join("");
 
         return;
@@ -1430,21 +1267,13 @@ function updateRegressionPanel() {
         '<p class="small">Effect unit: '
             + summary.effect_unit
             + "</p>",
-        '<div class="summary-grid">',
         regressionBlock(
-            "Baseline",
-            summary.baseline
-        ),
-        regressionBlock(
-            "Exclude LTS 0",
+            "Excluding LTS 0",
             summary.exclude_lts0
-        ),
-        "</div>",
-        '<p class="small"><b>Coefficient change:</b> '
-            + summary.effect_change_pp.toFixed(3)
-            + " accessibility percentage points.</p>"
+        )
     ].join("");
 }
+
 
 function populateMetricSelect() {
     const select = document.getElementById(
@@ -1495,6 +1324,7 @@ function populateMetricSelect() {
     );
 }
 
+
 function populateCoefficientTable() {
     const body = document.querySelector(
         "#coefficient-table tbody"
@@ -1503,12 +1333,6 @@ function populateCoefficientTable() {
     Object.values(regressionSummary).forEach(
         (summary) => {
             const row = document.createElement("tr");
-
-            const baselineClass = (
-                summary.baseline.significant
-                ? "significant"
-                : "not-significant"
-            );
 
             const excludedClass = (
                 summary.exclude_lts0.significant
@@ -1519,12 +1343,6 @@ function populateCoefficientTable() {
             row.innerHTML = [
                 "<td>" + summary.label + "</td>",
                 "<td>" + summary.effect_unit + "</td>",
-                '<td class="' + baselineClass + '">'
-                    + summary.baseline.effect_pp.toFixed(3)
-                    + "</td>",
-                "<td>"
-                    + formatPValue(summary.baseline.fdr)
-                    + "</td>",
                 '<td class="' + excludedClass + '">'
                     + summary.exclude_lts0.effect_pp.toFixed(3)
                     + "</td>",
@@ -1539,6 +1357,7 @@ function populateCoefficientTable() {
         }
     );
 }
+
 
 const map = L.map(
     "map",
@@ -1702,10 +1521,8 @@ def write_validation_report(
         "",
         "INPUTS",
         "------",
-        f"Baseline tract data: {args.baseline_tract_path}",
-        f"Exclude-LTS0 tract data: {args.exclude_tract_path}",
-        f"Baseline results: {args.baseline_results_path}",
-        f"Exclude-LTS0 results: {args.exclude_results_path}",
+        f"LTS-0-excluded tract data: {args.tract_path}",
+        f"LTS-0-excluded regression results: {args.results_path}",
         f"Tract geometry: {args.tract_geometry_path}",
         "",
         "DATA VALIDATION",
@@ -1750,56 +1567,41 @@ def main() -> None:
         exist_ok=True,
     )
 
-    print("Loading matched tract datasets...")
+    print("Loading LTS-0-excluded tract dataset...")
 
-    baseline_data = read_tract_data(args.baseline_tract_path)
+    tract_data = read_tract_data(args.tract_path)
 
-    excluded_data = read_tract_data(args.exclude_tract_path)
-
-    baseline_results = read_regression_results(args.baseline_results_path)
-
-    excluded_results = read_regression_results(args.exclude_results_path)
+    results = read_regression_results(args.results_path)
 
     predictors = identify_predictors(
-        baseline_data=baseline_data,
-        excluded_data=excluded_data,
-        baseline_results=baseline_results,
-        excluded_results=excluded_results,
+        tract_data=tract_data,
+        results=results,
     )
 
     print(f"County-adjusted predictors found: {len(predictors):,}")
 
-    verify_matched_design(
-        baseline=baseline_data,
-        excluded=excluded_data,
-        predictors=predictors,
-    )
-
-    comparison = build_comparison_table(
-        baseline=baseline_data,
-        excluded=excluded_data,
+    map_data = build_map_table(
+        tract_data=tract_data,
         predictors=predictors,
     )
 
     print("Joining Census-tract polygons...")
 
     mapped = attach_geometry(
-        comparison=comparison,
+        comparison=map_data,
         geometry_path=args.tract_geometry_path,
     )
 
-    print("Fitting matched regression residuals...")
+    print("Fitting LTS-0-excluded regression residuals...")
 
     mapped, regression_validation = add_regression_columns(
         mapped=mapped,
-        baseline_results=baseline_results,
-        excluded_results=excluded_results,
+        results=results,
         predictors=predictors,
     )
 
     regression_summary = build_regression_summary(
-        baseline_results=baseline_results,
-        excluded_results=excluded_results,
+        results=results,
         predictors=predictors,
     )
 
@@ -1818,7 +1620,7 @@ def main() -> None:
         output_root=args.output_root,
     )
 
-    print("Creating comprehensive interactive map...")
+    print("Creating interactive map...")
 
     html_path = create_interactive_html(
         mapped=mapped,
