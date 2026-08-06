@@ -42,16 +42,6 @@ from bcu_analysis.one_way_evaluation.street_identity import (
     unshared_edges,
 )
 
-DATA_FOLDER = "/work/pi_plunkett_umass_edu/bcu/data"
-
-DEFAULT_GRAPH_PATH = f"{DATA_FOLDER}/processed/osm/boston_only_cost_simplified.graphml"
-DEFAULT_OD_PATH = f"{DATA_FOLDER}/processed/census/boston_only_od_demand.csv"
-
-# Where accumulated scores are written and read back from. Both the writer
-# (run_route_asymmetry.py) and the readers (plotting, rankings) use this constant so
-# the paths cannot drift apart.
-DEFAULT_SCORES_CSV = f"{DATA_FOLDER}/processed/census/boston_only_route_asymmetry.csv"
-
 # Score columns read back from the CSV. max_lts and length come from the CSV rather
 # than the graph so the join can't collide on a duplicate column name.
 _SCORE_COLUMNS = [
@@ -81,7 +71,7 @@ ASYMMETRY_BASELINE = 1.0
 PROGRESS_EVERY = 500
 
 
-def load_cost_graph(path=DEFAULT_GRAPH_PATH):
+def load_cost_graph(path):
     """
     Load the simplified LTS cost graph.
 
@@ -302,7 +292,7 @@ def asymmetry_edges_df(G):
     return pd.DataFrame(rows)
 
 
-def load_edges_with_asymmetry(graph_path=DEFAULT_GRAPH_PATH, csv_path=DEFAULT_SCORES_CSV):
+def load_edges_with_asymmetry(graph_path, csv_path):
     """
     Load the cost graph as an edge GeoDataFrame joined to per-edge asymmetry scores.
 
