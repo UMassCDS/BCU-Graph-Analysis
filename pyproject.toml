@@ -5,13 +5,14 @@ requires = ["setuptools >= 61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "cdstemplate"
-version = "2.1.0"
-description = "A template repo for data science and machine learning projects at UMass Center for Data Science."
+name = "bcu-graph-analysis"
+version = "1.0"
+description = "Analysis of bicycle connectivity and Level of Traffic Stress (LTS) for the Greater Boston area, built by the DS4CG Boston Cyclists Union Team."
 readme = "README.md"
 
 # What version of python does your library work with?
-requires-python = ">=3.10"
+# numpy 2.5 requires >=3.12; environment.yml used 3.12
+requires-python = ">=3.12"
 
 # Metadata about your package in case you upload it to PYPI
 classifiers = [
@@ -20,26 +21,29 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# All the dependencies needed for running your module go here
+# All the dependencies needed for running your module go here.
 dependencies = [
-    "dvc>=2.42.0",
-    "numpy",
-    "pandas",
-    "geopandas",
-    "osmnx",
-    "shapely",
-    "scipy",
+    "numpy>=2.5.0",
+    # Upper bound: newer pandas changed behavior the pipeline relies on
+    "pandas<=2.3.3",
+    "geopandas>=1.1.3",
+    "osmnx>=2.1.0",
+    "shapely>=2.1.2",
+    "scipy>=1.18.0",
+    "networkx>=3.6.1",
+    "pyproj>=3.7.2",
+    "scikit-learn>=1.9.0",
+    "requests>=2.34.2",
+    "pyyaml>=6.0.3",
+    "matplotlib>=3.11.0",
+    "folium>=0.20.0",
     "pyarrow",
-    "requests",
-    "scikit-learn",
 ]
 
 [project.optional-dependencies]
 # Extra dependencies only needed for running tests go here
 test = [
     "pytest",
-    "geopandas",
-    "shapely",
 ]
 
 # Dependencies that are useful only to developers, like an autoformatter and
@@ -47,11 +51,8 @@ test = [
 dev = [
     "ruff",
     "jupyter",
-    "matplotlib",
     "seaborn",
     "sphinx",
-    "folium",
-    "branca",
 ]
 # Add customizations to the Ruff linter as described on https://docs.astral.sh/ruff/configuration/
 [tool.ruff]
