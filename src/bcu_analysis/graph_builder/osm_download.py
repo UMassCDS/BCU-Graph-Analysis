@@ -7,7 +7,10 @@ import osmnx as ox
 
 useragent = {"User-Agent": "bcu-labs"}
 
-dataFolder = '/work/pi_plunkett_umass_edu/bcu/data'
+dataFolder = os.environ.get(
+    "BCU_DATA_ROOT",
+    "./data",
+)
 queryFolder = 'src/bcu_analysis/graph_builder/query'
 
 overpass_url = "https://overpass.kumi.systems/api/interpreter"

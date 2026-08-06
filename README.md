@@ -26,7 +26,7 @@ Solving environment: done
 
 ## Package Plan ##
 
-  environment location: /home/virginia/miniconda3/envs/template
+  environment location: <conda-environment-path>
 
   added / updated specs:
     - python=3.10
@@ -41,7 +41,7 @@ The following NEW packages will be INSTALLED:
 
 $ conda activate `template`
 $ pip install -e .[test,dev]
-Obtaining file:///home/virginia/workspace/PythonProjectTemplate
+Obtaining <local-project-path>
   Installing build dependencies ... done
   Getting requirements to build wheel ... done
   Installing backend dependencies ... done
@@ -130,7 +130,7 @@ You can run tests locally using `pytest` or `python -m pytest` from the command 
 $ pytest
 ======================== test session starts ========================
 platform linux -- Python 3.10.4, pytest-7.1.2, pluggy-1.0.0
-rootdir: /home/virginia/workspace/PythonProjectTemplate
+rootdir: <local-project-path>
 collected 2 items
 
 tests/test_sample_module.py .

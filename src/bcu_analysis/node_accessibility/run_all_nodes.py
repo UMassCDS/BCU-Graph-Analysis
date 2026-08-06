@@ -14,22 +14,6 @@ from bcu_analysis.node_accessibility.accessibility import (
 )
 
 
-DEFAULT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified.graphml"
-)
-
-DEFAULT_OUTPUT_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "greater_boston_node_accessibility_typical_adult.csv"
-)
-
-DEFAULT_FAILURE_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "failed_accessibility_nodes.csv"
-)
-
-
 RESULT_FIELDS = [
     "node_id",
     "longitude",
@@ -65,17 +49,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--graph-path",
         type=Path,
-        default=DEFAULT_GRAPH_PATH,
+        required=True,
+        help="GraphML file used for accessibility calculations.",
     )
     parser.add_argument(
         "--output-path",
         type=Path,
-        default=DEFAULT_OUTPUT_PATH,
+        required=True,
+        help="CSV file for completed node-accessibility results.",
     )
     parser.add_argument(
         "--failure-path",
         type=Path,
-        default=DEFAULT_FAILURE_PATH,
+        required=True,
+        help="CSV file for nodes that could not be processed.",
     )
     parser.add_argument(
         "--cost-field",

@@ -1,5 +1,6 @@
 """Create an interactive map of relative bicycle accessibility."""
 
+import argparse
 from pathlib import Path
 
 import branca.colormap as cm
@@ -7,24 +8,41 @@ import folium
 import pandas as pd
 
 
-INPUT_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "greater_boston_node_accessibility_typical_adult_final.csv"
-)
+def parse_args() -> argparse.Namespace:
+    """Parse visualization input and output locations."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Create an interactive map of relative bicycle accessibility."
+        )
+    )
 
-OUTPUT_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "greater_boston_relative_accessibility_map.html"
-)
+    parser.add_argument(
+        "--input-path",
+        type=Path,
+        required=True,
+        help="Node-accessibility results CSV.",
+    )
+
+    parser.add_argument(
+        "--output-path",
+        type=Path,
+        required=True,
+        help="Location for the generated HTML map.",
+    )
+
+    return parser.parse_args()
+
 
 # Roughly 200-meter cells around Boston.
 GRID_SIZE = 0.002
 
 
 def main() -> None:
-    print(f"Reading: {INPUT_PATH}")
+    args = parse_args()
 
-    data = pd.read_csv(INPUT_PATH)
+    print(f"Reading: {args.input_path}")
+
+    data = pd.read_csv(args.input_path)
 
     required_columns = {
         "node_id",
@@ -173,14 +191,14 @@ def main() -> None:
         ]
     )
 
-    OUTPUT_PATH.parent.mkdir(
+    args.output_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    accessibility_map.save(OUTPUT_PATH)
+    accessibility_map.save(args.output_path)
 
-    print(f"Saved map: {OUTPUT_PATH}")
+    print(f"Saved map: {args.output_path}")
 
 
 if __name__ == "__main__":
