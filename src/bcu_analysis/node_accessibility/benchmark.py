@@ -15,17 +15,6 @@ from bcu_analysis.node_accessibility.accessibility import (
 )
 
 
-DEFAULT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified.graphml"
-)
-
-DEFAULT_OUTPUT_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "node_accessibility_benchmark_random.csv"
-)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Benchmark accessibility on random graph nodes."
@@ -33,12 +22,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--graph-path",
         type=Path,
-        default=DEFAULT_GRAPH_PATH,
+        required=True,
+        help="GraphML file used for the benchmark.",
     )
     parser.add_argument(
         "--output-path",
         type=Path,
-        default=DEFAULT_OUTPUT_PATH,
+        required=True,
+        help="CSV file for benchmark results.",
     )
     parser.add_argument(
         "--sample-size",

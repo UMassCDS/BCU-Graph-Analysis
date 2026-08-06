@@ -8,7 +8,11 @@ from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
 
 useragent = {'User-Agent': 'bcu-labs'}
-dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
+dataFolder = str(
+    Path(os.environ.get("BCU_DATA_ROOT", "./data"))
+    / "processed"
+    / "osm"
+)
 queryFolder = 'src/bcu_analysis/destination_csvs/query'
 overpass_url = "https://overpass-api.de/api/interpreter"
 OVERWRITE = False
