@@ -313,6 +313,8 @@ def main(rebuild=False):
     print(f"region: {args.region}")
     print(f"data folder: {args.dataFolder}")
 
+    dataFolder = f"{args.dataFolder}/processed/osm"
+
     global OVERWRITE
     OVERWRITE = rebuild
     Path(args.dataFolder).mkdir(exist_ok=True)
@@ -354,15 +356,15 @@ def main(rebuild=False):
     #Run pipeline
     for type, tags in TypesAndTags.items():
         build_query(region, key, value, type, tags)
-        download_osm(region, type, args.dataFolder)
-        elements = read_raw_file(region, type, args.dataFolder)
+        download_osm(region, type, dataFolder)
+        elements = read_raw_file(region, type, dataFolder)
         features = stores_name_geometry_type(elements, type)
         gdf_locations = eliminate_overlaps(features, region)
-        store_as_csv(gdf_locations, region, type, args.dataFolder)
+        store_as_csv(gdf_locations, region, type, dataFolder)
         if TypesAndFilters.get(type)[1]:
-            remove_logan_airport(f"{args.dataFolder}/{region}{type}_Coordinates.csv")
+            remove_logan_airport(f"{dataFolder}/{region}{type}_Coordinates.csv")
         if TypesAndFilters.get(type)[0]:
-            remove_island_locations(f"{args.dataFolder}/{region}{type}_Coordinates.csv")
+            remove_island_locations(f"{dataFolder}/{region}{type}_Coordinates.csv")
 
 if __name__ == '__main__':
     main(rebuild=True)

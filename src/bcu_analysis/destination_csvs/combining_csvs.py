@@ -39,7 +39,7 @@ def combine_csvs(file_list: List[str], output_filename: str, dataFolder) -> None
 def main():
     # Argparser
     parser = argparse.ArgumentParser(description="Specify what regions to create a main csv for.")
-    parser.add_argument("dataFolder", type=str, help="The path that all data comes from and whereboutputs are being stored.")
+    parser.add_argument("dataFolder", type=str, help="The path that all data comes from and where outputs are being stored.")
     # Original dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
     parser.add_argument("region", type=str, help="The region being considered. (options: Boston, Brookline, Cambridge, Somerville, and All)")
     args = parser.parse_args()
@@ -47,20 +47,22 @@ def main():
     print(f"region: {args.region}")
     print(f"data folder: {args.dataFolder}")
 
+    dataFolder = f"{args.dataFolder}/processed/osm"
+
     if args.region == "Boston":
-        combine_csv_for_town(["BostonGreenspace_Coordinates.csv", "BostonHealthcare_Coordinates.csv","BostonSchool_Coordinates.csv","BostonStore_Coordinates.csv","BostonTransitStation_Coordinates.csv"], "BostonDestinations.csv", "Boston", args.dataFolder)
+        combine_csv_for_town(["BostonGreenspace_Coordinates.csv", "BostonHealthcare_Coordinates.csv","BostonSchool_Coordinates.csv","BostonStore_Coordinates.csv","BostonTransitStation_Coordinates.csv"], "BostonDestinations.csv", "Boston", dataFolder)
     elif args.region == "Brookline":
-        combine_csv_for_town(["BrooklineGreenspace_Coordinates.csv", "BrooklineHealthcare_Coordinates.csv","BrooklineSchool_Coordinates.csv","BrooklineStore_Coordinates.csv","BrooklineTransitStation_Coordinates.csv"], "BrooklineDestinations.csv", "Brookline", args.dataFolder)
+        combine_csv_for_town(["BrooklineGreenspace_Coordinates.csv", "BrooklineHealthcare_Coordinates.csv","BrooklineSchool_Coordinates.csv","BrooklineStore_Coordinates.csv","BrooklineTransitStation_Coordinates.csv"], "BrooklineDestinations.csv", "Brookline", dataFolder)
     elif args.region == "Cambridge":
-        combine_csv_for_town(["CambridgeGreenspace_Coordinates.csv", "CambridgeHealthcare_Coordinates.csv","CambridgeSchool_Coordinates.csv","CambridgeStore_Coordinates.csv","CambridgeTransitStation_Coordinates.csv"], "CambridgeDestinations.csv", "Cambridge", args.dataFolder)
+        combine_csv_for_town(["CambridgeGreenspace_Coordinates.csv", "CambridgeHealthcare_Coordinates.csv","CambridgeSchool_Coordinates.csv","CambridgeStore_Coordinates.csv","CambridgeTransitStation_Coordinates.csv"], "CambridgeDestinations.csv", "Cambridge", dataFolder)
     elif args.region == "Somerville":
-        combine_csv_for_town(["SomervilleGreenspace_Coordinates.csv", "SomervilleHealthcare_Coordinates.csv","SomervilleSchool_Coordinates.csv","SomervilleStore_Coordinates.csv","SomervilleTransitStation_Coordinates.csv"], "SomervilleDestinations.csv", "Somerville", args.dataFolder)        
+        combine_csv_for_town(["SomervilleGreenspace_Coordinates.csv", "SomervilleHealthcare_Coordinates.csv","SomervilleSchool_Coordinates.csv","SomervilleStore_Coordinates.csv","SomervilleTransitStation_Coordinates.csv"], "SomervilleDestinations.csv", "Somerville", dataFolder)        
     elif args.region == "All":
-        combine_csv_for_town(["BostonGreenspace_Coordinates.csv", "BostonHealthcare_Coordinates.csv","BostonSchool_Coordinates.csv","BostonStore_Coordinates.csv","BostonTransitStation_Coordinates.csv"], "BostonDestinations.csv", "Boston", args.dataFolder)
-        combine_csv_for_town(["BrooklineGreenspace_Coordinates.csv", "BrooklineHealthcare_Coordinates.csv","BrooklineSchool_Coordinates.csv","BrooklineStore_Coordinates.csv","BrooklineTransitStation_Coordinates.csv"], "BrooklineDestinations.csv", "Brookline", args.dataFolder)
-        combine_csv_for_town(["CambridgeGreenspace_Coordinates.csv", "CambridgeHealthcare_Coordinates.csv","CambridgeSchool_Coordinates.csv","CambridgeStore_Coordinates.csv","CambridgeTransitStation_Coordinates.csv"], "CambridgeDestinations.csv", "Cambridge", args.dataFolder)
-        combine_csv_for_town(["SomervilleGreenspace_Coordinates.csv", "SomervilleHealthcare_Coordinates.csv","SomervilleSchool_Coordinates.csv","SomervilleStore_Coordinates.csv","SomervilleTransitStation_Coordinates.csv"], "SomervilleDestinations.csv", "Somerville", args.dataFolder)
-        combine_csvs(["BostonDestinations.csv","BrooklineDestinations.csv","CambridgeDestinations.csv","SomervilleDestinations.csv"], "Destinations.csv", args.dataFolder)
+        combine_csv_for_town(["BostonGreenspace_Coordinates.csv", "BostonHealthcare_Coordinates.csv","BostonSchool_Coordinates.csv","BostonStore_Coordinates.csv","BostonTransitStation_Coordinates.csv"], "BostonDestinations.csv", "Boston", dataFolder)
+        combine_csv_for_town(["BrooklineGreenspace_Coordinates.csv", "BrooklineHealthcare_Coordinates.csv","BrooklineSchool_Coordinates.csv","BrooklineStore_Coordinates.csv","BrooklineTransitStation_Coordinates.csv"], "BrooklineDestinations.csv", "Brookline", dataFolder)
+        combine_csv_for_town(["CambridgeGreenspace_Coordinates.csv", "CambridgeHealthcare_Coordinates.csv","CambridgeSchool_Coordinates.csv","CambridgeStore_Coordinates.csv","CambridgeTransitStation_Coordinates.csv"], "CambridgeDestinations.csv", "Cambridge", dataFolder)
+        combine_csv_for_town(["SomervilleGreenspace_Coordinates.csv", "SomervilleHealthcare_Coordinates.csv","SomervilleSchool_Coordinates.csv","SomervilleStore_Coordinates.csv","SomervilleTransitStation_Coordinates.csv"], "SomervilleDestinations.csv", "Somerville", dataFolder)
+        combine_csvs(["BostonDestinations.csv","BrooklineDestinations.csv","CambridgeDestinations.csv","SomervilleDestinations.csv"], "Destinations.csv", dataFolder)
     else:
         raise ValueError("Invalid Option.")
 
