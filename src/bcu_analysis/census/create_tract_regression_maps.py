@@ -242,6 +242,7 @@ def read_regression_results(path: Path) -> pd.DataFrame:
         "ci_95_low_accessibility_percentage_points",
         "ci_95_high_accessibility_percentage_points",
         "fdr_adjusted_p_value",
+        "r_squared",
         "statistically_significant_fdr_0_05",
     }
 
@@ -529,6 +530,7 @@ def build_regression_summary(
                 "ci_low_pp": float(result["ci_95_low_accessibility_percentage_points"]),
                 "ci_high_pp": float(result["ci_95_high_accessibility_percentage_points"]),
                 "fdr": float(result["fdr_adjusted_p_value"]),
+                "r_squared": float(result["r_squared"]),
                 "significant": bool(result["statistically_significant_fdr_0_05"]),
             },
         }
@@ -953,6 +955,7 @@ summary {
                             <th>Predictor</th>
                             <th>Unit</th>
                             <th>Coefficient</th>
+                            <th>R²</th>
                             <th>FDR</th>
                         </tr>
                     </thead>
@@ -1345,6 +1348,9 @@ function populateCoefficientTable() {
                 "<td>" + summary.effect_unit + "</td>",
                 '<td class="' + excludedClass + '">'
                     + summary.exclude_lts0.effect_pp.toFixed(3)
+                    + "</td>",
+                "<td>"
+                    + summary.exclude_lts0.r_squared.toFixed(3)
                     + "</td>",
                 "<td>"
                     + formatPValue(
