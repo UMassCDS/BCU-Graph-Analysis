@@ -62,29 +62,39 @@ def distributions(graph_path, graph_file, graph_name, output_path, path_count, d
         print("=== POTENTIAL DBENFIT SUMMARY STATISTICS ===")
         print(df_potential['potential_Dbenefit'].describe())
 
-def main(graphPath, graphFile, graphName, outputPath, path_count=True, distance=True, max_lts=True, cost=True, usage_stress=True, potential_Dbenefit=True):
-    parser = argparse.ArgumentParser(description="Determining the scenario to be run and what metrics to report distributions on.")
+def main():
+    parser = argparse.ArgumentParser(description="Determining the scenario to be run and what edge metrics to report distributions on.")
     parser.add_argument("dataFolder", type=str, help="The folder which the data is stored (and the output will be stored).")
     parser.add_argument("region", type=str, help="The region which is being considered (Options: Boston, Brookline, Cambridge, Somerville, or All).")
     parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (the number that identifies the scenario).")
     parser.add_argument("costScenario", type=int, help="The specific cost scenario being considered (the number that identifies the scenario).")
-    parser.add_argument("--path_count", type=bool)
+    parser.add_argument("--no_path_count", action="store_false", help="Call this tag if the distribution of 'path_count' is not wanted")
+    parser.add_argument("--no_distance", action="store_false", help="Call if the distribution of 'distance' is not wanted")
+    parser.add_argument("--no_max_lts", action="store_false", help="Call if the distribution of 'max_lts' is not wanted")
+    parser.add_argument("--no_cost", action="store_false", help="Call if the distribution of 'cost' is not wanted")
+    parser.add_argument("--no_usage_stress", action="store_false", help="Call if the distribution of 'usage_stress' is not wanted")
+    parser.add_argument("--no_potential_Dbenefit", action="store_false", help="Call if the distribution of 'potential_Dbenefit' is not wanted")
+    args = parser.add_help()
+
+    if args.region == "All":
+        graphFile = f"greater_boston_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        graphName = f"Greater Boston for Demand Scenario {args.demandScenario} and Cost Scenario {args.costScenario}"
+    elif args.region in ['Boston', 'Brookline', 'Cambridge', 'Somerville', 'All']:
+        graphFile = f"{args.region}_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        graphName = f"{args.region} for Demand Scenario {args.demandScenario} and Cost Scenario {args.costScenario}"
+    else:
+        raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'.")
+
+    graphPath = f"{args.dataFolder}/processed/road_usage_analysis/"
+    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/DistributionAnalysis"
+    path_count = args.no_path_count
+    distance = args.no_distance
+    max_lts = args.no_max_lts
+    cost = args.no_cost
+    usage_stress = args.no_usage_stress
+    potential_Dbenefit = args.no_potential_Dbenefit
+
     distributions(graphPath, graphFile, graphName, outputPath, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit)
 
 if __name__ == '__main__':
-    main("/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/",
-         "boston_only_usage.graphml", 
-         "boston_only_usage", 
-         "/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/CostAnalysis/"
-        )
-    #main("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/", 
-    #     "boston_only_cost.graphml", 
-    #     "boston_only_cost",
-    #     "/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/CostAnalysis/",
-    #     False, True, False, True, False, False
-    #    )
-    #main("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/", 
-    #     "boston_only_cost_simplified.graphml", 
-    #     "boston_only_cost_simplified",
-    #     "/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/CostAnalysis/",
-    #     False, True, True, True, False, False)
+    main()
