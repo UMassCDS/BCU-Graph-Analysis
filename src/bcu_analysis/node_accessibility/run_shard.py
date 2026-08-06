@@ -18,38 +18,26 @@ from bcu_analysis.node_accessibility.run_all_nodes import (
 )
 
 
-DEFAULT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
-    "greater_boston_6_cost_simplified.graphml"
-)
-
-DEFAULT_EXISTING_RESULTS = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/"
-    "greater_boston_node_accessibility_typical_adult.csv"
-)
-
-DEFAULT_OUTPUT_DIR = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/accessibility/shards"
-)
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
         "--graph-path",
         type=Path,
-        default=DEFAULT_GRAPH_PATH,
+        required=True,
+        help="GraphML file used for this accessibility shard.",
     )
     parser.add_argument(
         "--existing-results",
         type=Path,
-        default=DEFAULT_EXISTING_RESULTS,
+        required=True,
+        help="Existing combined results whose nodes should be skipped.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=DEFAULT_OUTPUT_DIR,
+        required=True,
+        help="Directory for shard results and failure logs.",
     )
     parser.add_argument(
         "--shard-index",
