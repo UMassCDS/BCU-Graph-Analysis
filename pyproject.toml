@@ -38,6 +38,8 @@ dependencies = [
     "matplotlib>=3.11.0",
     "folium>=0.20.0",
     "pyarrow",
+    "streamlit>=1.30.0",  # Added for the corridor dashboard
+    "pydeck>=0.8.0",      # Added for 3D map rendering and HTML exports
 ]
 
 [project.optional-dependencies]
