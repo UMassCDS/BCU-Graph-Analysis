@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import argparse
+from collections.abc import Sequence
 from pathlib import Path
 
 import networkx as nx
@@ -13,21 +15,40 @@ from bcu_analysis.node_accessibility.accessibility import (
     physical_segment_id,
 )
 
-INPUT_GRAPH_PATH = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified.graphml")
 
-OUTPUT_GRAPH_PATH = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml"
-)
+def parse_args(
+    argv: Sequence[str] | None = None,
+) -> argparse.Namespace:
+    """Parse graph-pruning command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Remove structurally inadequate components from an "
+            "analysis graph and write reproducible audit outputs."
+        )
+    )
 
-AUDIT_DIRECTORY = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/graph_pruning")
+    parser.add_argument(
+        "--input-graph-path",
+        type=Path,
+        required=True,
+        help="GraphML file to prune.",
+    )
 
-COMPONENT_INVENTORY_PATH = AUDIT_DIRECTORY / "component_inventory.csv"
+    parser.add_argument(
+        "--output-graph-path",
+        type=Path,
+        required=True,
+        help="Location for the pruned GraphML file.",
+    )
 
-REMOVED_COMPONENTS_PATH = AUDIT_DIRECTORY / "removed_components.csv"
+    parser.add_argument(
+        "--audit-directory",
+        type=Path,
+        required=True,
+        help="Directory for pruning inventories and summary files.",
+    )
 
-REMOVED_NODES_PATH = AUDIT_DIRECTORY / "removed_nodes.csv"
-
-SUMMARY_PATH = AUDIT_DIRECTORY / "graph_pruning_summary.txt"
+    return parser.parse_args(argv)
 
 
 # Components shorter than this cannot provide enough road mileage
@@ -137,9 +158,42 @@ def classify_component(
     return True, "meets_minimum_component_miles"
 
 
-def main() -> None:
-    print(f"Loading original graph: {INPUT_GRAPH_PATH}")
-    graph = ox.load_graphml(INPUT_GRAPH_PATH)
+def main(
+    argv: Sequence[str] | None = None,
+) -> None:
+    args = parse_args(argv)
+
+    input_graph_path = args.input_graph_path
+    output_graph_path = args.output_graph_path
+    audit_directory = args.audit_directory
+
+    component_inventory_path = (
+        audit_directory
+        / "component_inventory.csv"
+    )
+
+    removed_components_path = (
+        audit_directory
+        / "removed_components.csv"
+    )
+
+    removed_nodes_path = (
+        audit_directory
+        / "removed_nodes.csv"
+    )
+
+    summary_path = (
+        audit_directory
+        / "graph_pruning_summary.txt"
+    )
+
+    if not input_graph_path.is_file():
+        raise FileNotFoundError(
+            f"Input graph not found: {input_graph_path}"
+        )
+
+    print(f"Loading original graph: {input_graph_path}")
+    graph = ox.load_graphml(input_graph_path)
 
     original_node_count = graph.number_of_nodes()
     original_edge_count = graph.number_of_edges()
@@ -250,33 +304,38 @@ def main() -> None:
 
     pruned_graph.graph["minimum_component_miles"] = str(MIN_COMPONENT_MILES)
 
-    pruned_graph.graph["source_graph"] = str(INPUT_GRAPH_PATH)
+    pruned_graph.graph["source_graph"] = str(input_graph_path)
 
-    AUDIT_DIRECTORY.mkdir(
+    output_graph_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    audit_directory.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     inventory.to_csv(
-        COMPONENT_INVENTORY_PATH,
+        component_inventory_path,
         index=False,
     )
 
     removed_components.to_csv(
-        REMOVED_COMPONENTS_PATH,
+        removed_components_path,
         index=False,
     )
 
     removed_nodes.to_csv(
-        REMOVED_NODES_PATH,
+        removed_nodes_path,
         index=False,
     )
 
-    print(f"Saving pruned graph: {OUTPUT_GRAPH_PATH}")
+    print(f"Saving pruned graph: {output_graph_path}")
 
     ox.save_graphml(
         pruned_graph,
-        OUTPUT_GRAPH_PATH,
+        output_graph_path,
     )
 
     removed_node_count = original_node_count - pruned_node_count
@@ -291,8 +350,8 @@ def main() -> None:
         "Greater Boston graph-pruning summary",
         "====================================",
         "",
-        f"Input graph: {INPUT_GRAPH_PATH}",
-        f"Output graph: {OUTPUT_GRAPH_PATH}",
+        f"Input graph: {input_graph_path}",
+        f"Output graph: {output_graph_path}",
         "",
         "Retention rule:",
         (f"A component is removed when it contains less than {MIN_COMPONENT_MILES:.2f} physical road miles."),
@@ -310,19 +369,19 @@ def main() -> None:
         (f"Retained weak components: {retained_component_count:,}"),
         (f"Removed weak components: {len(removed_components):,}"),
         "",
-        f"Component inventory: {COMPONENT_INVENTORY_PATH}",
-        f"Removed components: {REMOVED_COMPONENTS_PATH}",
-        f"Removed nodes: {REMOVED_NODES_PATH}",
+        f"Component inventory: {component_inventory_path}",
+        f"Removed components: {removed_components_path}",
+        f"Removed nodes: {removed_nodes_path}",
     ]
 
-    SUMMARY_PATH.write_text(
+    summary_path.write_text(
         "\n".join(summary_lines) + "\n",
         encoding="utf-8",
     )
 
     print()
     print("\n".join(summary_lines))
-    print(f"Summary saved: {SUMMARY_PATH}")
+    print(f"Summary saved: {summary_path}")
 
 
 if __name__ == "__main__":
