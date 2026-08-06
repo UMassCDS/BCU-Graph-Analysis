@@ -13,14 +13,6 @@ import pandas as pd
 from bcu_analysis.census.assignment import assign_population_to_nodes_by_tract_area
 
 
-DEFAULT_TRACTS = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/census/"
-    "ma_tracts_population.geojson"
-)
-DEFAULT_OUTPUT_DIR = Path(
-    "/work/pi_plunkett_umass_edu/bcu/data/processed/census/results"
-)
-
 REGIONS = {
     "boston": ("Boston, Massachusetts, USA",),
     "brookline": ("Brookline, Massachusetts, USA",),
@@ -49,8 +41,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         required=True,
         help="GraphML file whose nodes will receive Census population.",
     )
-    parser.add_argument("--tract-path", type=Path, default=DEFAULT_TRACTS)
-    parser.add_argument("--output-directory", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument(
+        "--tract-path",
+        type=Path,
+        required=True,
+        help="GeoJSON containing Census tract geometry and population.",
+    )
+    parser.add_argument(
+        "--output-directory",
+        type=Path,
+        required=True,
+        help="Directory where generated assignment outputs will be written.",
+    )
     parser.add_argument(
         "--output-prefix",
         help=(

@@ -33,13 +33,17 @@ Examples:
 # Combined four-city assignment using the pruned analysis graph
 python src/bcu_analysis/census/run_census_assignment.py \
   --region greater-boston \
-  --graph-path /work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml \
+  --graph-path /path/to/greater_boston_6_cost_simplified_pruned.graphml \
+  --tract-path /path/to/ma_tracts_population.geojson \
+  --output-directory /path/to/results \
   --output-prefix greater_boston_pruned
 
 # Boston tracts assigned to nodes from the same supplied graph
 python src/bcu_analysis/census/run_census_assignment.py \
   --region boston \
-  --graph-path /work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_6_cost_simplified_pruned.graphml \
+  --graph-path /path/to/greater_boston_6_cost_simplified_pruned.graphml \
+  --tract-path /path/to/ma_tracts_population.geojson \
+  --output-directory /path/to/results \
   --output-prefix boston_pruned
 ```
 

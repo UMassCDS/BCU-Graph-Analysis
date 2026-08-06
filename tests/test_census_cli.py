@@ -17,16 +17,50 @@ def test_cli_accepts_each_supported_region(region):
             region,
             "--graph-path",
             "example.graphml",
+            "--tract-path",
+            "tracts.geojson",
+            "--output-directory",
+            "results",
         ]
     )
 
     assert args.region == region
     assert args.graph_path == Path("example.graphml")
+    assert args.tract_path == Path("tracts.geojson")
+    assert args.output_directory == Path("results")
 
 
 def test_cli_requires_graph_path():
     with pytest.raises(SystemExit):
         parse_args(["--region", "boston"])
+
+
+def test_cli_requires_tract_path():
+    with pytest.raises(SystemExit):
+        parse_args(
+            [
+                "--region",
+                "boston",
+                "--graph-path",
+                "example.graphml",
+                "--output-directory",
+                "results",
+            ]
+        )
+
+
+def test_cli_requires_output_directory():
+    with pytest.raises(SystemExit):
+        parse_args(
+            [
+                "--region",
+                "boston",
+                "--graph-path",
+                "example.graphml",
+                "--tract-path",
+                "tracts.geojson",
+            ]
+        )
 
 
 def test_cli_rejects_unknown_region():
@@ -37,6 +71,10 @@ def test_cli_rejects_unknown_region():
                 "quincy",
                 "--graph-path",
                 "example.graphml",
+                "--tract-path",
+                "tracts.geojson",
+                "--output-directory",
+                "results",
             ]
         )
 
