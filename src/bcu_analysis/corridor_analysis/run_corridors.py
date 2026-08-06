@@ -14,11 +14,11 @@ CITY_OPTIONS = list(CITIES) + ["greater_boston"]
 def resolve_area(area):
     if area == "greater_boston":
         return "greater_boston"
-    return f'{area}_only'
+    return f'{area}'
 
-def main(area, data_dir, output_dir, min_island_size, link_complexity):
+def main(area, data_dir, output_dir, min_island_size, link_complexity,demand_scenario, cost_scenario):
     region_name = resolve_area(area)
-    graph_path = Path(data_dir) / f"{region_name}_usage.graphml"
+    graph_path = Path(data_dir) / f"{region_name}_cost_with_pathCount_DS{demand_scenario}_CS{cost_scenario}.graphml"
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     
@@ -58,6 +58,11 @@ if __name__ == "__main__":
     parser.add_argument("--min-island-size", type=int, default=20, help="Minimum edges required to consider a safe network an 'island'.")
     parser.add_argument("--link-complexity", type=int, default=10, help="Bridging depth (number of top islands to connect).")
     
+    # New arguments for the scenarios
+    parser.add_argument("--demand-scenario", type=int, default=1, help="Demand Scenario (DS) ID number.")
+    parser.add_argument("--cost-scenario", type=int, default=1, help="Cost Scenario (CS) ID number.")
+    
     args = parser.parse_args()
     main(area=args.area, data_dir=args.data_dir, output_dir=args.output_dir, 
-         min_island_size=args.min_island_size, link_complexity=args.link_complexity)
+         min_island_size=args.min_island_size, link_complexity=args.link_complexity,
+         demand_scenario=args.demand_scenario, cost_scenario=args.cost_scenario)
