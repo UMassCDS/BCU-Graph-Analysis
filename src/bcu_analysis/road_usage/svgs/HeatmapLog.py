@@ -4,6 +4,7 @@ import matplotlib as mpl
 from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 import numpy as np
+import argparse
 
 def loadgraph(graph_path='/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/', graph_file="boston_only_usage.graphml"):
     print("Loading graph...")
@@ -169,67 +170,52 @@ def generateImage(G, edges, attributeName, lowerThreshold, upperThreshold, Outpu
 
 
 
-def main(GraphPath, Graph_File, attributeName, attributeToGraph, lowerThreshold, upperThreshold, filter, outputPath, outputName):
+def main():
+    parser = argparse.ArgumentParser(decription="Defining for what data and for what edge attribute to make a heatmap.")
+    parser.add_argument("dataFolder", type=str, help="The main folder which the data is stored (and the images will be saved to).")
+    parser.add_argument("region", type=str, help="The region being considered (Options: Boston, Brookline, Cambridge, Somerville, or All).")
+    parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (the number that identifies the scenario)")
+    parser.add_argument("costScenario", type=int, help="The specific cost scenario being considered (the number that identifies the scenario)")
+    parser.add_argument("attribute", type=str, help="The edge attribute of interest (Options: usage, usage_stress, or potential_improvement)")
+    parser.add_argument("lowerThreshold", type=int, help="All road segments with a value below this value and greater than 1 will be marked in yellow.")
+    parser.add_argument("upperThreshold", type=int, help="All road segments with a value greater than this value will be marked in red.")
+    parser.add_argument("--onlyLTS3and4", action="store_true", help="Use this tag if you only want to display high-stress roads")
+    args = parser.parse_args()
+
+    GraphPath = f"{args.dataFolder}/processed/road_usage_analysis/"
+    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/Heatmaps"
+    if args.attribute == "usage":
+        attributeName = "Usage"
+        attributeToGraph = 'path_count'
+    elif args.attribute == "usage_stress":
+        attributeName = "Usage_Stress"
+        attributeToGraph = 'usage_stress'
+    elif args.attribute == 'potential_improvement':
+        attributeName = "Potential_Improvement"
+        attributeToGraph = 'potential_Dbenefit'
+    else:
+        raise ValueError("Invalid attribute requested. Please try 'usage', 'usage_stress', or 'potential_improvement'.")
+    lowerThreshold = args.lowerThreshold 
+    upperThreshold = args.upperThreshold
+    filter = args.onlyLTS3and4
+    if args.region == "All":
+        Graph_File = f"greater_boston_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        if args.onlyLTS3and4:
+            outputName = f"greater_boston_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}"
+        else:
+            outputName = f"greater_boston_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}Unfiltered"
+    if args.region in ['Boston', 'Brookline', 'Cambridge', 'Somerville']:
+        Graph_File = f"{args.region}_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        if args.onlyLTS3and4:
+            outputName = f"{args.region}_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}"
+        else:
+            outputName = f"{args.region}_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}Unfiltered"
+    else:
+        raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'.")    
+
     G = loadgraph(GraphPath, Graph_File)
     edges = categorizingEdges(G, attributeToGraph, lowerThreshold, upperThreshold, filter)
     generateImage(G, edges, attributeName, lowerThreshold, upperThreshold, outputPath, outputName)
 
 if __name__ == '__main__':
-    # For Usage Stress
-    main(
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/',
-        "boston_only_usage.graphml",
-        "Usage Stress",
-        'usage_stress',
-        1,
-        1000,
-        True,
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/PresentedToClient/',
-        "boston_only_heatmap_UsageStressLog"
-    )
-    main(
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/',
-        "boston_only_usage.graphml",
-        "Usage Stress",
-        'usage_stress',
-        1,
-        1000,
-        False,
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/PresentedToClient/',
-        "boston_only_heatmap_UsageStressLogUnfiltered"
-    )
-    # For Potential Improvement 
-    main(
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/',
-        "boston_only_usage.graphml",
-        "Potential Improvement",
-        'potential_Dbenefit',
-        100,
-        50000,
-        True,
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/PresentedToClient/',
-        "boston_only_heatmap_PotentialImprovementLog"
-    )
-    main(
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/',
-        "boston_only_usage.graphml",
-        "Potential Improvement",
-        'potential_Dbenefit',
-        100,
-        50000,
-        False,
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/PresentedToClient/',
-        "boston_only_heatmap_PotentialImprovementLogUnfiltered"
-    )
-    # For Demand 
-    main(
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/',
-        "boston_only_usage.graphml",
-        "Usage",
-        'path_count',
-        1,
-        500,
-        False,
-        '/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/PresentedToClient/',
-        "boston_only_heatmap_UsageLog"
-    )
+    main()

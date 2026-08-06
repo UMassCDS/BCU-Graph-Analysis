@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=path_count           # job name
-#SBATCH -p cpu                          #partition (cpu or gpu)
+#SBATCH -p cpu,cpu-preempt              #partition (cpu or gpu)
 #SBATCH -N 1                            #number of nodes
 #SBATCH -c 16                           #number of cores
 #SBATCH --mem=32G                       #memory (G is for GB)
@@ -13,7 +13,7 @@ conda activate graph_analysis
 
 #-u is for unbuffered outputs (outputs as file runs)
 python -u src/bcu_analysis/road_usage/path_count.py \
-    /work/pi_plunkett_umass_edu/data \
+    /work/pi_plunkett_umass_edu/bcu/data \
     1 \
     1 \
     All
