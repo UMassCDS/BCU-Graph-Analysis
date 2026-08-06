@@ -12,16 +12,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-
-# Configuration
-OD_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/output/demand_scenarios/demand_scenario_1/")
-GRAPH_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/output/cost_scenarios/cost_scenario_1")
-OUTPUT_FOLDER = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/")
-
-GRAPH_PATH = GRAPH_FOLDER / "greater_boston_cost_scenario_1_simplified.graphml"
-OD_PATH = OD_FOLDER / "greater_boston_all_pairs_demand_scenario_1.csv"
-OUTPUT_GRAPH_PATH = OUTPUT_FOLDER / "greater_boston_cost_with_pathCount_demand_scenario_1.graphml"
-FAILED_OD_PATH = OUTPUT_FOLDER / "greater_boston_unroutable_od_pairs_demand_scenario_1.csv"
+import argparse
 
 # Each worker receives several origins at once.
 # Increasing this reduces multiprocessing communication but may worsen
@@ -512,7 +503,34 @@ def make_balanced_chunks(origin_tasks, chunk_count):
 # ============================================================
 
 def main():
-    OUTPUT_FOLDER.mkdir(
+    #Parser
+    parser = argparse.ArgumentParser(description="Specify which graph and which set of origin-destination pairs are being considered for Usage Analysis.")
+    parser.add_argument("dataFolder", type=str, help="The folder where all data is stored (and where outputs will be stored).")
+    parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (Should be the number that identifies the scenario).")
+    parser.add_argument("costScenario", type=int, help="The specific cost scenario/graph being considered (Should be the number that identifies the scenario).")
+    parser.add_argument("region", type=str, help="The region being considered (Options: Boston, Brookline, Cambridge, Somerville, or All).")
+    args = parser.parse_args()
+
+    #Defining folder paths
+    OD_FOLDER = Path(f"{args.dataFolder}/output/demand_scenarios/demand_scenario_{args.demandScenario}/")
+    GRAPH_FOLDER = Path(f"{args.dataFolder}/output/cost_scenarios/cost_scenario_{args.costScenario}/")
+    OUTPUT_FOLDER = Path(f"{args.dataFolder}/processed/road_usage_analysis/")
+
+    #Defining file paths 
+    if args.region == "All":
+        GRAPH_PATH = GRAPH_FOLDER / f"greater_boston_cost_scenario_{args.costScenario}_simplified.graphml"
+        OD_PATH = OD_FOLDER / f"greater_boston_all_pairs_demand_scenario_{args.demandScenario}.csv"
+        OUTPUT_GRAPH_PATH = OUTPUT_FOLDER / f"greater_boston_cost_with_pathCount_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        FAILED_OD_PATH = OUTPUT_FOLDER / f"greater_boston_unroutable_pairs_DS{args.demandScenario}_CS{args.costScenario}.csv"
+    elif args.region in ["Boston", "Brookline", "Cambridge", "Somerville"]:
+        GRAPH_PATH = GRAPH_FOLDER / f"{args.region}_cost_scenario_{args.costScenario}_simplified.graphml"
+        OD_PATH = OD_FOLDER / f"{args.region}_all_pairs_demand_scenario_{args.demandScenario}.csv"
+        OUTPUT_GRAPH_PATH = OUTPUT_FOLDER / f"{args.region}_cost_with_pathCount_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        FAILED_OD_PATH = OUTPUT_FOLDER / f"{args.region}_unroutable_pairs_DS{args.demandScenario}_CS{args.costScenario}.csv"
+    else:
+        raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'")
+
+    args.dataFolder.mkdir(
         parents=True,
         exist_ok=True,
     )

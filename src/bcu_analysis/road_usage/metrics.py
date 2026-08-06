@@ -1,4 +1,5 @@
 import networkx as nx
+import argparse
 
 def metricsGraph(inputPath, inputFile, outputPath, outputFile):
 
@@ -50,10 +51,25 @@ def metricsGraph(inputPath, inputFile, outputPath, outputFile):
     nx.write_graphml(G, f"{outputPath}{outputFile}")
     print(f"Saved updated graph to: {outputFile}")
 
+def main():
+    parser = argparse.ArgumentParser(description="Specifying where to access the data and for which scenario the Usage Analysis should be run.")
+    parser.add_argument("dataFolder", type=str, help="The folder where the data is stored (and where the output will be stored).")
+    parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (Should be the number that identifies the scenario).")
+    parser.add_argument("costScenario", type=int, help="The specific cost scenario being considered (Should be the number that identifies the scenario).")
+    parser.add_argument("region", type=str, help="The region for which the analysis is being performed. (Options: Boston, Brookline, Cambridge, Somerville, or All)")
+    args = parser.parse_args()
+
+    Path = f"{args.dataFolder}/processed/road_usage_analysis/"
+    if args.region == "All":
+        inputFile = f"greater_boston_cost_with_pathCount_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        outputFile = f"greater_boston_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+    elif args.region in ["Boston", "Brookline", "Cambridge", "Somerville"]:
+        inputFile = f"{args.region}_cost_with_pathCount_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+        outputFile = f"{args.region}_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
+    else:
+        raise ValueError("Invalid region. Try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'")
+
+    metricsGraph(Path, inputFile, Path, outputFile)
+
 if __name__ == '__main__':
-    metricsGraph(
-        "/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/", 
-        "boston_only_cost_with_pathCount.graphml",
-        "/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/",
-        "boston_only_usage.graphml"
-    )
+    main()

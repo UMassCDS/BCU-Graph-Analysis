@@ -1,5 +1,6 @@
 import networkx as nx
 import pandas as pd
+import argparse
 
 def distributions(graph_path, graph_file, graph_name, output_path, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit):
 
@@ -62,6 +63,12 @@ def distributions(graph_path, graph_file, graph_name, output_path, path_count, d
         print(df_potential['potential_Dbenefit'].describe())
 
 def main(graphPath, graphFile, graphName, outputPath, path_count=True, distance=True, max_lts=True, cost=True, usage_stress=True, potential_Dbenefit=True):
+    parser = argparse.ArgumentParser(description="Determining the scenario to be run and what metrics to report distributions on.")
+    parser.add_argument("dataFolder", type=str, help="The folder which the data is stored (and the output will be stored).")
+    parser.add_argument("region", type=str, help="The region which is being considered (Options: Boston, Brookline, Cambridge, Somerville, or All).")
+    parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (the number that identifies the scenario).")
+    parser.add_argument("costScenario", type=int, help="The specific cost scenario being considered (the number that identifies the scenario).")
+    parser.add_argument("--path_count", type=bool)
     distributions(graphPath, graphFile, graphName, outputPath, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit)
 
 if __name__ == '__main__':
