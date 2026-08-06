@@ -16,7 +16,7 @@ show_missing_links = st.sidebar.checkbox("Show Proposed Missing Links", value=Tr
 link_complexity = st.sidebar.slider("Corridor Bridging Depth", min_value=1, max_value=15, value=10, step=1)
 
 DATA_DIR = Path("data") 
-GRAPH_PATH = DATA_DIR / "boston_only_usage.graphml"
+GRAPH_PATH = DATA_DIR / "boston_cost_with_pathCount_DS1_CS1.graphml"
 
 with st.spinner("Processing network topology and missing links..."):
     G = core.load_graph(GRAPH_PATH)
