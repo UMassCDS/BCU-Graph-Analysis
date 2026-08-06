@@ -3,6 +3,7 @@ import os
 
 import pandas as pd
 
+from bcu_analysis.graph_builder.build_cost_graph import CITY_OPTIONS, resolve_area
 from bcu_analysis.od_generation.build_poi_od_pairs import build_poi_od_pairs
 from bcu_analysis.od_generation.lodes_pairs import generate_lodes_pairs
 from bcu_analysis.od_generation.lodes_sampling import sample_lodes_trips
@@ -13,6 +14,15 @@ LODES_CATEGORY = "home_office"
 
 DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), "config", "demand_parameters.csv"
+)
+
+# Node-level population weights, produced by the census_assignment stage. That stage has not
+# been migrated to the region_name/data_dir convention yet (it writes fixed Boston filenames),
+# so this default is Boston-only regardless of the area requested. Override with
+# --pop-geojson-path once region-specific files exist.
+DEFAULT_POP_GEOJSON = (
+    "/work/pi_plunkett_umass_edu/bcu/data/processed/census/results/"
+    "Boston_nodes_with_population_web.geojson"
 )
 
 
@@ -55,18 +65,69 @@ def load_demand(scenario_id=1, config_path=DEFAULT_CONFIG_PATH):
 
 
 def main(
-    scenario_id=1,
+    area,
+    cost_scenario,
+    demand_scenario=1,
+    data_dir=None,
     config_path=DEFAULT_CONFIG_PATH,
-    output_path="/work/pi_plunkett_umass_edu/bcu/data/processed/census/greater_boston_od_demand.csv",
+    pop_geojson_path=DEFAULT_POP_GEOJSON,
+    output_path=None,
     random_seed=None,
 ):
     """
     Run both OD generators for a demand scenario and write a single combined CSV.
 
-    Output columns: origin_node, destination_node, category, count.
+    Reads the simplified cost graph built by graph_builder/build_cost_graph.py for the given
+    area and cost scenario, then writes its intermediates and combined output under
+    ``{data_dir}/output/demand_scenarios/demand_scenario_{demand_scenario}/``. The LODES base
+    pairs are the exception: they depend only on the graph, so they live alongside it under
+    ``output/cost_scenarios/cost_scenario_{cost_scenario}/``.
+
+    Parameters:
+    - area (str): Municipality key or 'greater_boston'; resolved to a region name and town list
+      by graph_builder.build_cost_graph.resolve_area, so it matches the graph on disk.
+    - cost_scenario (int): Cost scenario id whose simplified graph should be routed on.
+    - demand_scenario (int | str): Which scenario column to read from demand_parameters.csv.
+    - data_dir (str): Root data directory (the parent of raw/, processed/, output/).
+    - config_path (str): Path to demand_parameters.csv.
+    - pop_geojson_path (str): Node-level population weights for POI home sampling.
+    - output_path (str | None): Override for the combined CSV; derived from the scenario when None.
+    - random_seed (int | None): Seed for both the LODES sampler and the POI sampler.
+
+    Returns:
+    - pd.DataFrame: columns origin_node, destination_node, category, count.
     """
-    counts = load_demand(scenario_id, config_path=config_path)
-    print(f"Demand scenario {scenario_id}: {counts}")
+    if data_dir is None:
+        raise ValueError("data_dir is required.")
+
+    region_name, cities = resolve_area(area)
+    # Destinations.csv tags each row with a bare town name ('Boston'), while CITIES holds
+    # full place names ('Boston, Massachusetts').
+    towns = [name.split(",")[0].strip() for name, _, _ in cities]
+
+    data_dir = data_dir.rstrip("/")
+    cost_dir = f"{data_dir}/output/cost_scenarios/cost_scenario_{cost_scenario}"
+    demand_dir = f"{data_dir}/output/demand_scenarios/demand_scenario_{demand_scenario}"
+
+    graph_path = f"{cost_dir}/{region_name}_cost_scenario_{cost_scenario}_simplified.graphml"
+    # LODES pairs are a function of the graph alone, so they are cost-scenario scoped and
+    # shared by every demand scenario routed on the same graph.
+    lodes_pairs_path = f"{cost_dir}/{region_name}_lodes_pairs.csv"
+    lodes_sample_path = f"{demand_dir}/{region_name}_lodes_sample_demand_scenario_{demand_scenario}.csv"
+    poi_pairs_path = f"{demand_dir}/{region_name}_poi_pairs_demand_scenario_{demand_scenario}.csv"
+    if output_path is None:
+        output_path = f"{demand_dir}/{region_name}_all_pairs_demand_scenario_{demand_scenario}.csv"
+
+    if not os.path.exists(graph_path):
+        raise FileNotFoundError(
+            f"Cost graph not found: {graph_path}. Build it first with "
+            f"'python src/bcu_analysis/graph_builder/build_cost_graph.py {cost_scenario} {area} "
+            f"--data-dir {data_dir}'."
+        )
+
+    counts = load_demand(demand_scenario, config_path=config_path)
+    print(f"Region {region_name}, cost scenario {cost_scenario}, demand scenario {demand_scenario}")
+    print(f"Demand scenario {demand_scenario}: {counts}")
 
     frames = []
 
@@ -74,8 +135,17 @@ def main(
     # number of trips, tagging them with the category.
     lodes_count = counts.get(LODES_CATEGORY)
     if lodes_count:
-        generate_lodes_pairs()
-        lodes = sample_lodes_trips(n_trips=lodes_count, random_seed=random_seed)
+        generate_lodes_pairs(
+            graph_path=graph_path,
+            output_path=lodes_pairs_path,
+        )
+        lodes = sample_lodes_trips(
+            pairs_path=lodes_pairs_path,
+            graph_path=graph_path,
+            output_path=lodes_sample_path,
+            n_trips=lodes_count,
+            random_seed=random_seed,
+        )
         lodes = lodes[["origin_node", "destination_node", "count"]].copy()
         lodes["category"] = LODES_CATEGORY
         frames.append(lodes)
@@ -83,16 +153,29 @@ def main(
     # POI trips for every other category.
     poi_counts = {k: v for k, v in counts.items() if k != LODES_CATEGORY}
     if poi_counts:
-        poi = build_poi_od_pairs(category_counts=poi_counts)
+        poi = build_poi_od_pairs(
+            graph_path=graph_path,
+            pop_geojson_path=pop_geojson_path,
+            destinations_path=f"{data_dir}/processed/osm/Destinations.csv",
+            towns=towns,
+            category_counts=poi_counts,
+            output_path=poi_pairs_path,
+            random_seed=random_seed,
+        )
         if not poi.empty:
             frames.append(poi)
 
     if not frames:
-        raise ValueError(f"No trips generated for scenario {scenario_id}.")
+        raise ValueError(
+            f"No trips generated for demand scenario {demand_scenario}. Column "
+            f"{demand_scenario!r} exists in {config_path} but has no positive counts - "
+            f"check that it is not blank."
+        )
 
     combined = pd.concat(frames, ignore_index=True)
     combined = combined[["origin_node", "destination_node", "category", "count"]]
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     combined.to_csv(output_path, index=False)
     print(f"Wrote {len(combined):,} combined OD pairs to {output_path}")
     print(combined.groupby("category")["count"].sum())
@@ -101,17 +184,47 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Combine LODES + POI OD pairs for a demand scenario.")
-    parser.add_argument("--scenario-id", default=1, help="Scenario column in demand_parameters.csv")
+    parser.add_argument(
+        "cost_scenario",
+        type=int,
+        help="Cost scenario id whose simplified graph should be routed on",
+    )
+    parser.add_argument(
+        "area",
+        choices=CITY_OPTIONS,
+        help="Municipality to generate demand for, or 'greater_boston' for all of them combined.",
+    )
+    parser.add_argument(
+        "--demand-scenario",
+        type=int,
+        default=1,
+        help="Scenario column in demand_parameters.csv",
+    )
+    parser.add_argument(
+        "--data-dir",
+        required=True,
+        help="Root data directory",
+    )
     parser.add_argument("--config-path", default=DEFAULT_CONFIG_PATH)
     parser.add_argument(
+        "--pop-geojson-path",
+        default=DEFAULT_POP_GEOJSON,
+        help="Node-level population geojson used to weight POI home sampling (Boston-only today)",
+    )
+    parser.add_argument(
         "--output-path",
-        default="/work/pi_plunkett_umass_edu/bcu/data/processed/census/greater_boston_od_demand.csv",
+        default=None,
+        help="Override the derived path for the combined OD CSV",
     )
     parser.add_argument("--random-seed", type=int, default=None)
     args = parser.parse_args()
     main(
-        scenario_id=args.scenario_id,
+        area=args.area,
+        cost_scenario=args.cost_scenario,
+        demand_scenario=args.demand_scenario,
+        data_dir=args.data_dir,
         config_path=args.config_path,
+        pop_geojson_path=args.pop_geojson_path,
         output_path=args.output_path,
         random_seed=args.random_seed,
     )

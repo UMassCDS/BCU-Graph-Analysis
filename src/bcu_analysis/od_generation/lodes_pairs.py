@@ -1,10 +1,12 @@
+import os
+
 import geopandas as gpd
 import osmnx as ox
 from bcu_analysis.od_generation.lodes_io import read_lodes_data, read_crosswalk
 
 def generate_lodes_pairs(
-    graph_path="/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_cost_simplified.graphml",
-    output_path="/work/pi_plunkett_umass_edu/bcu/data/processed/census/greater_boston_lodes_pairs.csv",
+    graph_path,
+    output_path,
     year=2023,
     geographic_crs="EPSG:4326",
     projected_crs="EPSG:26986",
@@ -103,7 +105,5 @@ def generate_lodes_pairs(
     )
 
     #Save to csv
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     trip_pairs.to_csv(output_path, index=False)
-
-if __name__ == "__main__":
-    generate_lodes_pairs()

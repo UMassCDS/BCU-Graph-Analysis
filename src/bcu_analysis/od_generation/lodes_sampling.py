@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import osmnx as ox
@@ -6,9 +8,9 @@ from scipy.stats import lognorm
 
 
 def sample_lodes_trips(
-    pairs_path="/work/pi_plunkett_umass_edu/bcu/data/processed/census/greater_boston_lodes_pairs.csv",
-    graph_path="/work/pi_plunkett_umass_edu/bcu/data/processed/osm/greater_boston_cost_simplified.graphml",
-    output_path="/work/pi_plunkett_umass_edu/bcu/data/processed/census/greater_boston_lodes_sample.csv",
+    pairs_path,
+    graph_path,
+    output_path,
     n_trips=10000,
     lognormal_mu=0.3551,
     lognormal_sigma=0.7899,
@@ -96,8 +98,6 @@ def sample_lodes_trips(
     weighted_mean = np.average(sample["length_miles"], weights=sample["count"])
     print(f"Mean sampled trip length: {weighted_mean:.2f} miles")
 
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     sample.to_csv(output_path, index=False)
     return sample
-
-if __name__ == "__main__":
-    sample = sample_lodes_trips()
