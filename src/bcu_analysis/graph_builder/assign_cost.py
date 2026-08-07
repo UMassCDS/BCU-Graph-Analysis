@@ -26,13 +26,7 @@ def lts_edges(region, gdf_edges):
 
         gdf_edges = lts.parking_present(gdf_edges, rating_dict)
         gdf_edges = lts.convert_both_tag(gdf_edges)
-        gdf_edges = lts.parse_lanes(
-            gdf_edges,
-            log_path=(
-                Path(PROCESSED_OSM_DIR)
-                / f"{region}_log_parse.csv"
-            ),
-        )
+        gdf_edges = lts.parse_lanes(gdf_edges)
         gdf_edges = lts.get_prevailing_speed(gdf_edges, rating_dict)
         gdf_edges = lts.get_lanes(gdf_edges, default_lanes=2)
         gdf_edges = lts.get_centerlines(gdf_edges, rating_dict)
@@ -42,15 +36,8 @@ def lts_edges(region, gdf_edges):
         gdf_edges = lts.define_adt(gdf_edges, rating_dict)
         gdf_edges = lts.LTS_separation(gdf_edges)
 
-        lts.column_value_counts(
-            gdf_edges,
-            log_directory=PROCESSED_OSM_DIR,
-        )
-        all_lts = lts.calculate_lts(
-            gdf_edges,
-            tables,
-            log_directory=PROCESSED_OSM_DIR,
-        )
+        lts.column_value_counts(gdf_edges)
+        all_lts = lts.calculate_lts(gdf_edges, tables)
         gdf_edges = lts.define_zoom(gdf_edges, rating_dict)
         
         all_lts.to_csv(filepathAll)

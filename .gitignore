@@ -134,6 +134,3 @@ dmypy.json
 #vscode
 .vscode/
 /cache/
-
-# Slurm runtime logs
-logs/

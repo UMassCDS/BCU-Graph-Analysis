@@ -3,13 +3,12 @@ Here are the functions used to process OSM data and calculate LTS.
 '''
 
 import re
-from pathlib import Path
-
 import yaml
 
 import pandas as pd
 import numpy as np
 
+intermediate_path = "/work/pi_plunkett_umass_edu/bcu/data/processed/osm/"
 SIDES = ['left', 'right']
 DIRS = ['fwd', 'rev']
 
@@ -234,7 +233,7 @@ def convert_both_tag(gdf_edges):
 
     return gdf_edges
 
-def parse_lanes(gdf_edges, log_path=None):
+def parse_lanes(gdf_edges):
     '''
     Parse which side of the street bike lanes are based on OSM tags and which direction they travel.
     Then coorelate street features to the respective direction of bike travel. 
@@ -300,13 +299,7 @@ def parse_lanes(gdf_edges, log_path=None):
         except KeyError as e:
             print(f'\tColumn does not exsist in this region: {e}')
 
-    if log_path is not None:
-        log_path = Path(log_path)
-        log_path.parent.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-        logdf.to_csv(log_path)
+    logdf.to_csv(f'{intermediate_path}/log_parse.csv')
     # gdf_edges.loc[gdf_edges['bike_allowed_fwd'].isna()].to_csv('data/log_bike_allowed_fwd_na.csv')
     # gdf_edges.loc[gdf_edges['bike_allowed_rev'].isna()].to_csv('data/log_bike_allowed_rev_na.csv')
 
@@ -560,10 +553,7 @@ def LTS_separation(gdf_edges):
 
     return gdf_edges
 
-def column_value_counts(
-    gdf_edges,
-    log_directory=None,
-):
+def column_value_counts(gdf_edges):
     '''
     This is a debugging function. Save what values and their quantities are in the data for each 
     filter column.
@@ -592,25 +582,10 @@ def column_value_counts(
         vc_df[f'{col}_values'] = vc.index
         vc_df[f'{col}_counts'] = vc.values
 
-    if log_directory is not None:
-        log_directory = Path(log_directory)
-        log_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-        vc_df.to_csv(
-            log_directory
-            / "log_filter_column_counts.csv"
-        )
-
+    vc_df.to_csv(f'{intermediate_path}/log_filter_column_counts.csv')
     print('Saved columns values and counts of filters')
 
-def evaluate_lts_table(
-    gdf_edges,
-    tables,
-    tableName,
-    log_directory=None,
-):
+def evaluate_lts_table(gdf_edges, tables, tableName):
     baseName = tableName[6:]
     table = tables[tableName]
     print(f'Evalutating LTS use {baseName} table...')
@@ -658,33 +633,15 @@ def evaluate_lts_table(
                             logdf.loc[len(logdf)] = [subTable, conditionTableStr, conditionName, dir, condition, lts, gdf_filter.values.sum()]
                     # gdf_edges.loc[gdf_filter, f'{prefix}_rule_num'] = key
 
-    if log_directory is not None:
-        log_directory = Path(log_directory)
-        log_directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-        logdf.to_csv(
-            log_directory
-            / f"log_lts_{baseName}.csv"
-        )
+    logdf.to_csv(f'{intermediate_path}/log_lts_{baseName}.csv')
 
     return gdf_edges
 
-def calculate_lts(
-    gdf_edges,
-    tables,
-    log_directory=None,
-):
+def calculate_lts(gdf_edges, tables):
     tablesList = [key for key in tables.keys() if 'table_' in key]
 
     for tableName in tablesList:
-        gdf_edges = evaluate_lts_table(
-            gdf_edges,
-            tables,
-            tableName,
-            log_directory=log_directory,
-        )
+        gdf_edges = evaluate_lts_table(gdf_edges, tables, tableName)
 
     # Use the lowest calculated LTS score for a segment (in case mixed is lower than bike lane)
     for dir in DIRS:
