@@ -14,6 +14,6 @@ conda activate bcu_graph_analysis
 python -u src/bcu_analysis/od_generation/generate_od_demand.py \
     1 \
     greater_boston \
-    --demand_scenario 1 \
+    --demand-scenario 1 \
     --data-dir /work/pi_plunkett_umass_edu/bcu/final \
-    --pop-geojson-path
+    --pop-geojson-path /work/pi_plunkett_umass_edu/bcu/final/processed/census/results/greater_boston_cost_scenario_1_nodes_with_population_web.geojson

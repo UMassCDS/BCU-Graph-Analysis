@@ -1,0 +1,176 @@
+Reading graph: /work/pi_plunkett_umass_edu/bcu/final/output/cost_scenarios/cost_scenario_1/greater_boston_cost_scenario_1_simplified.graphml
+Graph loaded: 98,168 nodes, 279,932 edges, type=MultiDiGraph
+Preparing routing adjacency...
+Reading OD demand: /work/pi_plunkett_umass_edu/bcu/final/output/demand_scenarios/demand_scenario_1/greater_boston_all_pairs_demand_scenario_1.csv
+Input rows: 42,294
+Unique OD pairs: 42,291
+Routable non-self pairs: 42,160
+Unique origins: 22,268
+Missing-node pairs: 0
+Self OD pairs skipped: 131
+Routing with 16 worker processes across 32 balanced chunks.
+Completed 1/32 chunks; 1,318/42,160 OD pairs.
+Completed 2/32 chunks; 2,636/42,160 OD pairs.
+Completed 3/32 chunks; 3,954/42,160 OD pairs.
+Completed 4/32 chunks; 5,272/42,160 OD pairs.
+Completed 5/32 chunks; 6,590/42,160 OD pairs.
+Completed 6/32 chunks; 7,908/42,160 OD pairs.
+Completed 7/32 chunks; 9,226/42,160 OD pairs.
+Completed 8/32 chunks; 10,544/42,160 OD pairs.
+Completed 9/32 chunks; 11,862/42,160 OD pairs.
+Completed 10/32 chunks; 13,180/42,160 OD pairs.
+Completed 11/32 chunks; 14,498/42,160 OD pairs.
+Completed 12/32 chunks; 15,816/42,160 OD pairs.
+Completed 13/32 chunks; 17,134/42,160 OD pairs.
+Completed 14/32 chunks; 18,452/42,160 OD pairs.
+Completed 15/32 chunks; 19,770/42,160 OD pairs.
+Completed 16/32 chunks; 21,088/42,160 OD pairs.
+Completed 17/32 chunks; 22,405/42,160 OD pairs.
+Completed 18/32 chunks; 23,722/42,160 OD pairs.
+Completed 19/32 chunks; 25,039/42,160 OD pairs.
+Completed 20/32 chunks; 26,356/42,160 OD pairs.
+Completed 21/32 chunks; 27,673/42,160 OD pairs.
+Completed 22/32 chunks; 28,990/42,160 OD pairs.
+Completed 23/32 chunks; 30,307/42,160 OD pairs.
+Completed 24/32 chunks; 31,624/42,160 OD pairs.
+Completed 25/32 chunks; 32,941/42,160 OD pairs.
+Completed 26/32 chunks; 34,258/42,160 OD pairs.
+Completed 27/32 chunks; 35,575/42,160 OD pairs.
+Completed 28/32 chunks; 36,892/42,160 OD pairs.
+Completed 29/32 chunks; 38,209/42,160 OD pairs.
+Completed 30/32 chunks; 39,526/42,160 OD pairs.
+Completed 31/32 chunks; 40,843/42,160 OD pairs.
+Completed 32/32 chunks; 42,160/42,160 OD pairs.
+Applying path counts to graph...
+Writing graph: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/greater_boston_cost_with_pathCount_DS1_CS1.graphml
+
+Routing complete.
+Graph saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/greater_boston_cost_with_pathCount_DS1_CS1.graphml
+Failure report saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/greater_boston_unroutable_pairs_DS1_CS1.csv
+No-path OD pairs: 3,868
+Elapsed time: 3.93 minutes
+Loading graph...
+Graph type: <class 'networkx.classes.multidigraph.MultiDiGraph'>
+Nodes: 98168
+Edges: 279932
+Calculating metrics (Usage Stress and Potential Direct Benefit of Improvement...)
+Saved updated graph to: greater_boston_metrics_DS1_CS1.graphml
+Loading graph...
+Extracting edge attributes...
+Saved edge data to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/DistributionAnalysis/edges_greater_boston_DS1_CS1.csv
+For greater_boston_metrics_DS1_CS1.graphml...
+=== USAGE SUMMARY STATISTICS ===
+count    91023.000000
+mean        31.715127
+std         74.578412
+min          1.000000
+25%          2.000000
+50%          7.000000
+75%         27.000000
+max       1035.000000
+Name: path_count, dtype: float64
+
+========================================
+
+=== DISTANCE SUMMARY STATISTICS ===
+count    279932.000000
+mean         41.708860
+std          62.346854
+min           0.164327
+25%           6.690147
+50%          15.566902
+75%          55.835004
+max        3318.033527
+Name: distance, dtype: float64
+
+========================================
+
+=== MAX LTS STATISTICS ===
+count    135853.000000
+mean          1.874548
+std           0.676761
+min           1.000000
+25%           1.000000
+50%           2.000000
+75%           2.000000
+max           4.000000
+Name: max_lts, dtype: float64
+
+========================================
+
+=== COST SUMMARY STATISTICS ===
+count    279932.000000
+mean       2073.863629
+std        5049.651809
+min           0.164327
+25%          34.734772
+50%         333.102744
+75%        1102.504884
+max      331803.352749
+Name: cost, dtype: float64
+
+========================================
+
+=== USAGE STRESS SUMMARY STATISTICS ===
+count    79191.000000
+mean        64.634996
+std        135.336621
+min          1.000000
+25%          5.000000
+50%         18.000000
+75%         63.000000
+max       2799.000000
+Name: usage_stress, dtype: float64
+
+========================================
+
+=== POTENTIAL DBENFIT SUMMARY STATISTICS ===
+count     62714.000000
+mean        871.913199
+std        3195.320207
+min           0.280986
+25%          35.484683
+50%         153.714795
+75%         636.629956
+max      202952.889831
+Name: potential_Dbenefit, dtype: float64
+Loading graph...
+Nodes: 98,168
+Edges: 279,932
+Categorizing road segments...
+Generating visualization...
+Saving visualization...
+Completed Figure for Usage!
+Figure saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/Heatmaps/greater_boston_heatmap_DS1_CS1_UsageUnfiltered.svg
+Loading graph...
+Nodes: 98,168
+Edges: 279,932
+Categorizing road segments...
+Generating visualization...
+Saving visualization...
+Completed Figure for Usage_Stress!
+Figure saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/Heatmaps/greater_boston_heatmap_DS1_CS1_Usage_StressUnfiltered.svg
+Loading graph...
+Nodes: 98,168
+Edges: 279,932
+Categorizing road segments...
+Generating visualization...
+Saving visualization...
+Completed Figure for Potential_Improvement!
+Figure saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/Heatmaps/greater_boston_heatmap_DS1_CS1_Potential_ImprovementUnfiltered.svg
+Loading graph...
+Nodes: 98,168
+Edges: 279,932
+Categorizing road segments...
+Generating visualization...
+Saving visualization...
+Completed Figure for Usage_Stress!
+Figure saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/Heatmaps/greater_boston_heatmap_DS1_CS1_Usage_Stress.svg
+Loading graph...
+Nodes: 98,168
+Edges: 279,932
+Categorizing road segments...
+Generating visualization...
+Saving visualization...
+Completed Figure for Potential_Improvement!
+Figure saved to: /work/pi_plunkett_umass_edu/bcu/final/processed/road_usage_analysis/Heatmaps/greater_boston_heatmap_DS1_CS1_Potential_Improvement.svg
