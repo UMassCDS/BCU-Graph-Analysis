@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=path_count       # job name
+#SBATCH --job-name=destination_dowload       # job name
 #SBATCH -p cpu,cpu-preempt          #partition (cpu or gpu)
 #SBATCH -N 1                        #number of nodes
 #SBATCH -c 1                       #number of cores
 #SBATCH --mem=8G                   #memory (G is for GB)
 #SBATCH --time=1:00:00              #maximum run time
-#SBATCH --output=scripts/errors/path_count-%j.out       #standard output file
-#SBATCH --error=scripts/errors/path_count-%j.err        #standard error file
+#SBATCH --output=scripts/errors/destination_download-%j.out       #standard output file
+#SBATCH --error=scripts/errors/destination_download-%j.err        #standard error file
 
 module load conda/latest
 conda activate bcu_graph_analysis

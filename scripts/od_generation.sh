@@ -1,12 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=bcu_graph
+#SBATCH --job-name=od_generation
 #SBATCH -p cpu,cpu-preempt
 #SBATCH -N 1
 #SBATCH -c 1
 #SBATCH --mem=32G
 #SBATCH --time=2:00:00
-#SBATCH --output=scripts/errors/path_count-%j.out
-#SBATCH --error=scripts/errors/path_count-%j.err 
+#SBATCH --output=scripts/errors/od_generationt-%j.out
+#SBATCH --error=scripts/errors/od_generation-%j.err 
 
 module load conda/latest
 conda activate bcu_graph_analysis

@@ -5,8 +5,8 @@
 #SBATCH -c 1
 #SBATCH --mem=32G
 #SBATCH --time=2:00:00
-#SBATCH --output=scripts/errors/path_count-%j.out
-#SBATCH --error=scripts/errors/path_count-%j.err 
+#SBATCH --output=scripts/errors/bcu_graph-%j.out
+#SBATCH --error=scripts/errors/bcu_graph-%j.err 
 
 module load conda/latest
 conda activate bcu_graph_analysis
