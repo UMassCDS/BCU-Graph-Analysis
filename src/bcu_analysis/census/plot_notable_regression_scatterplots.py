@@ -54,8 +54,7 @@ PREDICTOR_CONFIGURATION = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Create population-weighted county-adjusted scatter plots "
-            "for notable tract-level demographic regressions."
+            "Create population-weighted county-adjusted scatter plots for notable tract-level demographic regressions."
         )
     )
 
@@ -88,10 +87,7 @@ def parse_args() -> argparse.Namespace:
         "--fallback-count",
         type=int,
         default=4,
-        help=(
-            "Number of lowest-FDR results to plot when no model "
-            "passes the requested FDR threshold."
-        ),
+        help=("Number of lowest-FDR results to plot when no model passes the requested FDR threshold."),
     )
     parser.add_argument(
         "--title-suffix",
@@ -176,10 +172,7 @@ def load_inputs(
     missing_tract = required_tract_columns - set(tracts.columns)
 
     if missing_tract:
-        raise ValueError(
-            "Tract data is missing required columns: "
-            f"{sorted(missing_tract)}"
-        )
+        raise ValueError(f"Tract data is missing required columns: {sorted(missing_tract)}")
 
     required_result_columns = {
         "model_type",
@@ -197,10 +190,7 @@ def load_inputs(
     missing_results = required_result_columns - set(results.columns)
 
     if missing_results:
-        raise ValueError(
-            "Regression results are missing required columns: "
-            f"{sorted(missing_results)}"
-        )
+        raise ValueError(f"Regression results are missing required columns: {sorted(missing_results)}")
 
     return tracts, results
 
@@ -211,14 +201,10 @@ def select_notable_results(
     max_plots: int,
     fallback_count: int,
 ) -> pd.DataFrame:
-    county_adjusted = results.loc[
-        results["model_type"].eq("county_adjusted")
-    ].copy()
+    county_adjusted = results.loc[results["model_type"].eq("county_adjusted")].copy()
 
     if county_adjusted.empty:
-        raise RuntimeError(
-            "No county-adjusted regression results were found."
-        )
+        raise RuntimeError("No county-adjusted regression results were found.")
 
     county_adjusted["fdr_adjusted_p_value"] = pd.to_numeric(
         county_adjusted["fdr_adjusted_p_value"],
@@ -233,22 +219,14 @@ def select_notable_results(
         ascending=[True, True],
     ).reset_index(drop=True)
 
-    selected = county_adjusted.loc[
-        county_adjusted["fdr_adjusted_p_value"] <= fdr_threshold
-    ].copy()
+    selected = county_adjusted.loc[county_adjusted["fdr_adjusted_p_value"] <= fdr_threshold].copy()
 
     if selected.empty:
-        selected = county_adjusted.head(
-            min(fallback_count, len(county_adjusted))
-        ).copy()
+        selected = county_adjusted.head(min(fallback_count, len(county_adjusted))).copy()
 
-        selected["selection_reason"] = (
-            "Lowest FDR values; none passed the requested threshold"
-        )
+        selected["selection_reason"] = "Lowest FDR values; none passed the requested threshold"
     else:
-        selected["selection_reason"] = (
-            f"County-adjusted FDR <= {fdr_threshold:g}"
-        )
+        selected["selection_reason"] = f"County-adjusted FDR <= {fdr_threshold:g}"
 
     return selected.head(max_plots).reset_index(drop=True)
 
@@ -269,12 +247,7 @@ def prepare_model(
         predictor,
     ]
 
-    frame = (
-        tracts[required_columns]
-        .replace([np.inf, -np.inf], np.nan)
-        .dropna()
-        .copy()
-    )
+    frame = tracts[required_columns].replace([np.inf, -np.inf], np.nan).dropna().copy()
 
     numeric_columns = [
         "tract_accessibility",
@@ -288,25 +261,16 @@ def prepare_model(
             errors="coerce",
         )
 
-    frame = frame.dropna(
-        subset=numeric_columns
-    ).copy()
+    frame = frame.dropna(subset=numeric_columns).copy()
 
-    frame = frame.loc[
-        frame["tract_accessibility"].between(0, 1)
-        & frame["represented_population"].gt(0)
-    ].copy()
+    frame = frame.loc[frame["tract_accessibility"].between(0, 1) & frame["represented_population"].gt(0)].copy()
 
     if len(frame) < 30:
-        raise RuntimeError(
-            f"{predictor}: fewer than 30 valid tracts"
-        )
+        raise RuntimeError(f"{predictor}: fewer than 30 valid tracts")
 
     frame["county"] = frame["county"].astype(str)
 
-    frame["scaled_predictor"] = (
-        frame[predictor] / scaling_denominator
-    )
+    frame["scaled_predictor"] = frame[predictor] / scaling_denominator
 
     design = pd.DataFrame(
         {
@@ -335,10 +299,7 @@ def prepare_model(
         has_constant="add",
     )
 
-    weights = (
-        frame["represented_population"]
-        / frame["represented_population"].mean()
-    )
+    weights = frame["represented_population"] / frame["represented_population"].mean()
 
     model = sm.WLS(
         frame["tract_accessibility"].astype(float),
@@ -363,9 +324,7 @@ def prediction_frame(
 
     prediction["const"] = 1.0
 
-    prediction["predictor"] = (
-        x_values / scaling_denominator
-    )
+    prediction["predictor"] = x_values / scaling_denominator
 
     county_column = f"county_{county}"
 
@@ -384,15 +343,11 @@ def create_plot(
     predictor = str(result["predictor"])
 
     if predictor not in PREDICTOR_CONFIGURATION:
-        raise ValueError(
-            f"Unknown predictor configuration: {predictor}"
-        )
+        raise ValueError(f"Unknown predictor configuration: {predictor}")
 
     configuration = PREDICTOR_CONFIGURATION[predictor]
 
-    scaling_denominator = float(
-        configuration["scaling_denominator"]
-    )
+    scaling_denominator = float(configuration["scaling_denominator"])
 
     frame, design, model = prepare_model(
         tracts=tracts,
@@ -402,9 +357,7 @@ def create_plot(
 
     saved_coefficient = float(result["coefficient"])
 
-    fitted_coefficient = float(
-        model.params["predictor"]
-    )
+    fitted_coefficient = float(model.params["predictor"])
 
     if not np.isclose(
         fitted_coefficient,
@@ -427,28 +380,16 @@ def create_plot(
         figsize=(11.5, 7.5),
     )
 
-    maximum_population = float(
-        frame["represented_population"].max()
-    )
+    maximum_population = float(frame["represented_population"].max())
 
-    county_order = sorted(
-        frame["county"].unique().tolist()
-    )
+    county_order = sorted(frame["county"].unique().tolist())
 
     for county in county_order:
-        county_frame = frame.loc[
-            frame["county"].eq(county)
-        ].copy()
+        county_frame = frame.loc[frame["county"].eq(county)].copy()
 
-        population_ratio = (
-            county_frame["represented_population"]
-            / maximum_population
-        )
+        population_ratio = county_frame["represented_population"] / maximum_population
 
-        marker_sizes = (
-            22.0
-            + 145.0 * np.sqrt(population_ratio)
-        )
+        marker_sizes = 22.0 + 145.0 * np.sqrt(population_ratio)
 
         points = axis.scatter(
             display_x(
@@ -462,13 +403,9 @@ def create_plot(
             label=county,
         )
 
-        x_min = float(
-            county_frame[predictor].min()
-        )
+        x_min = float(county_frame[predictor].min())
 
-        x_max = float(
-            county_frame[predictor].max()
-        )
+        x_max = float(county_frame[predictor].max())
 
         if np.isclose(x_min, x_max):
             continue
@@ -486,9 +423,7 @@ def create_plot(
             scaling_denominator=scaling_denominator,
         )
 
-        predicted_y = model.predict(
-            prediction
-        )
+        predicted_y = model.predict(prediction)
 
         face_colors = points.get_facecolor()
 
@@ -512,9 +447,7 @@ def create_plot(
         predictor.replace("_", " ").title(),
     )
 
-    title = (
-        f"Relative accessibility and {predictor_label}"
-    )
+    title = f"Relative accessibility and {predictor_label}"
 
     if title_suffix:
         title = f"{title}\n{title_suffix}"
@@ -542,47 +475,24 @@ def create_plot(
 
     axis.set_axisbelow(True)
 
-    effect_pp = float(
-        result[
-            "coefficient_accessibility_percentage_points"
-        ]
-    )
+    effect_pp = float(result["coefficient_accessibility_percentage_points"])
 
-    ci_low = float(
-        result[
-            "ci_95_low_accessibility_percentage_points"
-        ]
-    )
+    ci_low = float(result["ci_95_low_accessibility_percentage_points"])
 
-    ci_high = float(
-        result[
-            "ci_95_high_accessibility_percentage_points"
-        ]
-    )
+    ci_high = float(result["ci_95_high_accessibility_percentage_points"])
 
-    fdr = float(
-        result["fdr_adjusted_p_value"]
-    )
+    fdr = float(result["fdr_adjusted_p_value"])
 
-    r_squared = float(
-        result["r_squared"]
-    )
+    r_squared = float(result["r_squared"])
 
-    n_tracts = int(
-        result["n_tracts"]
-    )
+    n_tracts = int(result["n_tracts"])
 
-    effect_unit = str(
-        result["effect_unit"]
-    )
+    effect_unit = str(result["effect_unit"])
 
     annotation = "\n".join(
         [
             "County-adjusted population-weighted WLS",
-            (
-                f"Effect: {effect_pp:+.3f} accessibility "
-                f"percentage points per {effect_unit}"
-            ),
+            (f"Effect: {effect_pp:+.3f} accessibility percentage points per {effect_unit}"),
             f"95% CI: [{ci_low:+.3f}, {ci_high:+.3f}]",
             f"FDR-adjusted p-value: {format_p_value(fdr)}",
             f"Full-model R²: {r_squared:.3f}",
@@ -650,42 +560,22 @@ def write_gallery(
     cards = []
 
     for record in records:
-        predictor_label = html.escape(
-            str(record["predictor_label"])
-        )
+        predictor_label = html.escape(str(record["predictor_label"]))
 
-        image_path = (
-            output_path.parent
-            / str(record["plot_path"])
-        )
+        image_path = output_path.parent / str(record["plot_path"])
 
         if not image_path.is_file():
-            raise FileNotFoundError(
-                image_path
-            )
+            raise FileNotFoundError(image_path)
 
-        encoded_image = base64.b64encode(
-            image_path.read_bytes()
-        ).decode("ascii")
+        encoded_image = base64.b64encode(image_path.read_bytes()).decode("ascii")
 
-        image_uri = (
-            "data:image/png;base64,"
-            + encoded_image
-        )
+        image_uri = "data:image/png;base64," + encoded_image
 
-        effect = float(
-            record[
-                "coefficient_accessibility_percentage_points"
-            ]
-        )
+        effect = float(record["coefficient_accessibility_percentage_points"])
 
-        fdr = float(
-            record["fdr_adjusted_p_value"]
-        )
+        fdr = float(record["fdr_adjusted_p_value"])
 
-        r_squared = float(
-            record["r_squared"]
-        )
+        r_squared = float(record["r_squared"])
 
         cards.append(
             f"""
@@ -772,7 +662,7 @@ h1 {{
 <h1>Notable Census demographic regression results</h1>
 <p class="subtitle">{suffix}</p>
 <div class="grid">
-{''.join(cards)}
+{"".join(cards)}
 </div>
 </body>
 </html>
@@ -788,14 +678,10 @@ def main() -> None:
     args = parse_args()
 
     if not 0 < args.fdr_threshold <= 1:
-        raise ValueError(
-            "--fdr-threshold must be between 0 and 1."
-        )
+        raise ValueError("--fdr-threshold must be between 0 and 1.")
 
     if args.max_plots < 1:
-        raise ValueError(
-            "--max-plots must be at least 1."
-        )
+        raise ValueError("--max-plots must be at least 1.")
 
     tracts, results = load_inputs(
         tract_path=args.tract_path,
@@ -814,27 +700,18 @@ def main() -> None:
         exist_ok=True,
     )
 
-    print(
-        f"Selected notable regressions: {len(selected)}"
-    )
+    print(f"Selected notable regressions: {len(selected)}")
 
     records = []
 
     for rank, row in selected.iterrows():
         predictor = str(row["predictor"])
 
-        filename = (
-            f"{rank + 1:02d}_"
-            f"{slugify(predictor)}_scatter.png"
-        )
+        filename = f"{rank + 1:02d}_{slugify(predictor)}_scatter.png"
 
-        output_path = (
-            args.output_dir / filename
-        )
+        output_path = args.output_dir / filename
 
-        print(
-            f"Creating: {output_path}"
-        )
+        print(f"Creating: {output_path}")
 
         record = create_plot(
             tracts=tracts,
@@ -847,20 +724,14 @@ def main() -> None:
 
     manifest = pd.DataFrame(records)
 
-    manifest_path = (
-        args.output_dir
-        / "notable_regression_scatterplots.csv"
-    )
+    manifest_path = args.output_dir / "notable_regression_scatterplots.csv"
 
     manifest.to_csv(
         manifest_path,
         index=False,
     )
 
-    gallery_path = (
-        args.output_dir
-        / "notable_regression_scatterplots.html"
-    )
+    gallery_path = args.output_dir / "notable_regression_scatterplots.html"
 
     write_gallery(
         records=records,

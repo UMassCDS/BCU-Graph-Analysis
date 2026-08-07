@@ -46,10 +46,7 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--title",
-        default=(
-            "Greater Boston Census-Tract Accessibility, "
-            "Demographics, and Regression Results — Excluding LTS 0"
-        ),
+        default=("Greater Boston Census-Tract Accessibility, Demographics, and Regression Results — Excluding LTS 0"),
     )
 
     return parser.parse_args()
@@ -66,28 +63,20 @@ def main() -> None:
     missing = REQUIRED_MANIFEST_COLUMNS - set(manifest.columns)
 
     if missing:
-        raise ValueError(
-            f"Manifest is missing columns: {sorted(missing)}"
-        )
+        raise ValueError(f"Manifest is missing columns: {sorted(missing)}")
 
     manifest["cutoff_miles"] = pd.to_numeric(
         manifest["cutoff_miles"],
         errors="raise",
     )
 
-    manifest = manifest.sort_values(
-        "cutoff_miles"
-    ).reset_index(drop=True)
+    manifest = manifest.sort_values("cutoff_miles").reset_index(drop=True)
 
     if manifest["cutoff_miles"].duplicated().any():
-        raise ValueError(
-            "Manifest contains duplicate cutoff values."
-        )
+        raise ValueError("Manifest contains duplicate cutoff values.")
 
     if manifest["cutoff_tag"].astype(str).duplicated().any():
-        raise ValueError(
-            "Manifest contains duplicate cutoff tags."
-        )
+        raise ValueError("Manifest contains duplicate cutoff tags.")
 
     scenarios = []
 
@@ -107,9 +96,7 @@ def main() -> None:
         if not map_path.is_file():
             raise FileNotFoundError(map_path)
 
-        relative_map_path = map_path.relative_to(
-            wrapper_directory.parent
-        )
+        relative_map_path = map_path.relative_to(wrapper_directory.parent)
 
         scenarios.append(
             {
@@ -121,9 +108,7 @@ def main() -> None:
         )
 
     if not scenarios:
-        raise RuntimeError(
-            "No cutoff scenarios were found."
-        )
+        raise RuntimeError("No cutoff scenarios were found.")
 
     args.output_path.parent.mkdir(
         parents=True,
@@ -336,10 +321,7 @@ cutoffSelect.addEventListener(
     print(f"Cutoff scenarios: {len(scenarios)}")
 
     for scenario in scenarios:
-        print(
-            f"  {scenario['label']}: "
-            f"{scenario['map_path']}"
-        )
+        print(f"  {scenario['label']}: {scenario['map_path']}")
 
     print(f"Saved: {args.output_path}")
 

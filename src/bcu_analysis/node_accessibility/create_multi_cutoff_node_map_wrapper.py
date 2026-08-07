@@ -10,10 +10,7 @@ from pathlib import Path
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description=(
-            "Create one HTML page that switches among "
-            "cutoff-specific node accessibility maps."
-        )
+        description=("Create one HTML page that switches among cutoff-specific node accessibility maps.")
     )
 
     parser.add_argument(
@@ -28,10 +25,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--title",
-        default=(
-            "Greater Boston Relative Bicycle Accessibility "
-            "— Excluding LTS 0"
-        ),
+        default=("Greater Boston Relative Bicycle Accessibility — Excluding LTS 0"),
     )
 
     return parser.parse_args()
@@ -54,18 +48,12 @@ def main() -> None:
     scenarios = []
 
     for tag, miles in specifications:
-        map_path = (
-            args.map_root
-            / f"cutoff_{tag}_miles"
-            / "relative_accessibility.html"
-        )
+        map_path = args.map_root / f"cutoff_{tag}_miles" / "relative_accessibility.html"
 
         if not map_path.is_file():
             raise FileNotFoundError(map_path)
 
-        relative_path = map_path.relative_to(
-            args.output_path.parent
-        )
+        relative_path = map_path.relative_to(args.output_path.parent)
 
         scenarios.append(
             {
@@ -277,10 +265,7 @@ cutoffSelect.addEventListener(
     print(f"Cutoff scenarios: {len(scenarios)}")
 
     for scenario in scenarios:
-        print(
-            f"  {scenario['label']}: "
-            f"{scenario['map_path']}"
-        )
+        print(f"  {scenario['label']}: {scenario['map_path']}")
 
     print(f"Saved: {args.output_path}")
 
