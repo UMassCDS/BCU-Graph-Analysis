@@ -29,6 +29,7 @@ dependencies = [
     "osmnx",
     "shapely",
     "scipy",
+    "statsmodels",
     "pyarrow",
     "requests",
     "scikit-learn",
