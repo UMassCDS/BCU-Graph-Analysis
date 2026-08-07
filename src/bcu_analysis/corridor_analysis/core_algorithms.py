@@ -8,18 +8,36 @@ def load_graph(graph_path):
         raise FileNotFoundError(f"GraphML not found at {path}")
     return nx.read_graphml(path)
 
-def load_poi_data(data_dir):
-    poi_paths = {
-        "Schools": Path(data_dir) / "BostonSchools_Coordinates.csv",
-        "Healthcare": Path(data_dir) / "BostonHealthcare_Coordinates.csv",
-        "Offices": Path(data_dir) / "BostonOffice_Coordinates.csv",
-        "Bus Stations": Path(data_dir) / "BostonBusStations_Coordinates.csv"
-    }
-    dfs = {}
-    for name, path in poi_paths.items():
-        if path.exists():
-            dfs[name] = pd.read_csv(path)
-    return dfs
+def load_poi_data(poi_dir, area="boston"):
+    """
+    Loads POI CSVs from /work/pi_plunkett_umass_edu/bcu/data/processed/osm.
+    Combines all 4 municipalities if area is 'greater_boston'.
+    """
+    categories = ["Greenspaces", "Healthcare", "Office", "TransitStation"]
+    
+    if area == "greater_boston":
+        cities = ["Boston", "Brookline", "Cambridge", "Somerville"]
+    else:
+        # Capitalize area name (e.g., 'boston' -> 'Boston')
+        cities = [area.capitalize()]
+        
+    dfs = {cat: [] for cat in categories}
+    
+    for city in cities:
+        for cat in categories:
+            file_path = Path(poi_dir) / f"{city}{cat}.csv"
+            if file_path.exists():
+                df = pd.read_csv(file_path)
+                df["city"] = city
+                dfs[cat].append(df)
+                
+    # Concatenate dataframes for each category
+    combined_dfs = {}
+    for cat, list_of_dfs in dfs.items():
+        if list_of_dfs:
+            combined_dfs[cat] = pd.concat(list_of_dfs, ignore_index=True)
+            
+    return combined_dfs
 
 def process_islands(G, min_island_size, max_islands):
     safe_edges = []
