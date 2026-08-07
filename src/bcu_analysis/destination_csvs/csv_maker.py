@@ -6,9 +6,10 @@ import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point, Polygon
 from shapely.ops import unary_union
+import time
+import argparse
 
 useragent = {'User-Agent': 'bcu-labs'}
-dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
 queryFolder = 'src/bcu_analysis/destination_csvs/query'
 overpass_url = "https://overpass-api.de/api/interpreter"
 OVERWRITE = False
@@ -33,8 +34,10 @@ def build_query(region, key, value, type, tags):
             f.write('out body geom;\n')
         print(f'{filepath} created')
 
-# Taken from StressMap code
-def download_osm(region, type):
+
+
+# Taken from StressMap code + edits
+def download_osm(region, type, dataFolder):
     global OVERWRITE
     queryFilepath = os.path.join(queryFolder, f'{region}{type}Destinations.query')
     dataFilepath = os.path.join(dataFolder, f'{region}_{type}_Destinations.json')
@@ -45,26 +48,55 @@ def download_osm(region, type):
         with open(queryFilepath, 'r') as f:
             overpass_query = f.read()
         print(f'Downloading OSM map data for {region}...')
-        response = requests.get(overpass_url, headers=useragent, params={'data': overpass_query}, timeout=300)
-        response.raise_for_status()
-        data = response.json()
-        print(f'\tDownloaded OSM map data for {region}')
-        with open(dataFilepath, 'w') as f:
-            json.dump(data, f)
-        print(f'Saved {region} map data')
+        # Attempts overpass api up to 10 times 
+        max_attempts = 10
+        for i in range(max_attempts):
+            try: 
+                response = requests.get(overpass_url, headers=useragent, params={'data': overpass_query}, timeout=300)
+                response.raise_for_status()
+                data = response.json()
+                print(f'\tDownloaded OSM map data for {region}')
+                with open(dataFilepath, 'w') as f:
+                    json.dump(data, f)
+                print(f'Saved {region} map data')
+                break
+            except requests.exceptions.HTTPError as err:
+                if i==max_attempts-1:
+                        print("Maximum number of attempts reached")
+                        raise err 
+                elif err.response.status_code == 504:
+                    print("The Overpass server took too long to respond (504 Gateway Timeout).")
+                    print("Attempting Dowload again")
+                    print(f"{max_attempts-1-i} attempts left")
+                    time.sleep(5)
+                    continue
+                elif err.response.status_code == 429:
+                    print("Too many requests at once")
+                    print("Waiting to try again.")
+                    time.sleep(10)
+                    print("Attempting Download again")
+                    print(f"{max_attempts-1-i} attempts left")
+                    continue
+                else:
+                    raise err
 
-def generate_coordinate_table(region, type):
 
+
+def read_raw_file(region, type, dataFolder):
     # Reads the json file and creates the csv file that will contain the coordinate table
     json_filepath = Path(dataFolder) / f'{region}_{type}_Destinations.json'
-    csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv'
     
     with open(json_filepath, 'r', encoding='utf-8') as f:
         osm_data = json.load(f)
     
     # Loads all of the raw OSM pieces (nodes, ways, and relations) and stores as 'elements'
     elements = osm_data.get('elements', [])
-    
+
+    return elements
+
+
+
+def stores_name_geometry_type(elements, type):
     # Create empty lists to store nodes and ways/relations separately 
     polygons_list = []
     nodes_list = []
@@ -72,20 +104,15 @@ def generate_coordinate_table(region, type):
     # 1. Map elements precisely by their architectural structure
     for el in elements:
         tags = el.get('tags', {})
+
         name = tags.get('name', 'unnamed').strip().lower()
         # Determining the 'specific' variable (to indicate what type of destination something is)
         if type == 'Store':
             specific = tags.get('shop', 'NaN')
-        elif type == 'Greenspace':
-            specific = 'park'
-        elif type == 'School':
-            specific = 'school'
         elif type == 'TransitStation':
-            is_bus_stop = tags.get('public_transport', 'NaN')
-            if is_bus_stop != 'station':
-                specific = 'bus_stop'
-            elif is_bus_stop == 'NaN':
-                specific = type
+            is_bus_stop = tags.get('highway', 'NaN')
+            if is_bus_stop == 'bus_stop':
+                specific = is_bus_stop
             else:
                 specific = tags.get('station', 'NaN')
                 if specific == 'NaN' or specific == 'yes' or specific == '26':
@@ -102,10 +129,8 @@ def generate_coordinate_table(region, type):
                         specific = building
         elif type == 'Healthcare':
             specific = tags.get('amenity', 'NaN')
-        elif type == 'Office':
-            specific = 'office'
         else:
-            raise KeyError("A 'type' tag is not defined for this destination type. Look at line 79.")
+            specific = type.lower()
         
         # Handle standalone coordinates (extracts the latitude and longitude point for each node and stores it in the 'nodes_list')
         if el.get('type') == 'node':
@@ -136,6 +161,14 @@ def generate_coordinate_table(region, type):
                 # Merge multi-part relations into one unified spatial asset
                 unified_relation_geom = unary_union(outer_polys)
                 polygons_list.append({'name': name, 'geometry': unified_relation_geom, 'type': specific})
+
+    return [polygons_list, nodes_list]
+
+
+
+def eliminate_overlaps(features, region):
+    polygons_list = features[0]
+    nodes_list = features[1]
 
     # 2. Prevent overlapping assets using systematic spatial indices
     # Create list that will contain all of the features (nodes or polygons) that do not overlap with oneanother (to avoid double-counting a location)
@@ -201,6 +234,13 @@ def generate_coordinate_table(region, type):
     # Combine everything back together cleanly
     gdf_locations = pd.concat(cleaned_features, ignore_index=True)
 
+    return gdf_locations
+
+
+
+def store_as_csv(gdf_locations, region, type, dataFolder):
+    csv_output_path = Path(dataFolder) / f'{region}{type}_Coordinates.csv' 
+    
     # 4. Project and extract coordinates accurately
     # Converts list of shapes/nodes to a digital map (in meters)
     gdf_projected = gdf_locations.to_crs("EPSG:3857")
@@ -216,7 +256,9 @@ def generate_coordinate_table(region, type):
     print(f"Success! Table containing {len(df_final_output)} unique locations saved.")
     print(df_final_output.head())
 
-def remove_logan_airport_shops_inplace(csv_path):
+
+
+def remove_logan_airport(csv_path):
     # Load the data from the source file
     df = pd.read_csv(csv_path)
     
@@ -240,13 +282,9 @@ def remove_logan_airport_shops_inplace(csv_path):
     print(f"{len(removed_locations)} locations removed: {removed_locations}")
     print(f"{len(filtered_df)} locations remaining")
 
-def remove_island_locations_from_csv(region, type):
-    file_name = f'{region}{type}_Coordinates.csv'
-    csv_path = Path(dataFolder) / file_name
-    if not csv_path.exists():
-        print(f"Error: File not found at {csv_path}. Run your main pipeline first.")
-        return
 
+
+def remove_island_locations(csv_path):
     print(f"Reading generated dataset from {csv_path}...")
     df = pd.read_csv(csv_path)
     initial_count = len(df)
@@ -262,24 +300,71 @@ def remove_island_locations_from_csv(region, type):
     print(f"Removed {len(removed_locations)} island location(s): {removed_locations}")
     print(f"Success! Overwrote {csv_path}. Cleaned rows from {initial_count} down to {final_count}.")
 
-def main(region, key, value, type, tags, removeIsland, removeAirport, rebuild=False):
+
+
+def main(rebuild=False):
+    # Argparser
+    parser = argparse.ArgumentParser(description="Parameters to determine the type and filtering of destinations and the region being considered.")
+    parser.add_argument("dataFolder", type=str, help="The path that all outputs are being stored.")
+    # Original dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
+    parser.add_argument("region", type=str, help="The region being considered.(Options: Boston, Brookline, Cambridge, and Somerville)")
+    args = parser.parse_args() 
+    print("Working Under...")
+    print(f"region: {args.region}")
+    print(f"data folder: {args.dataFolder}")
+
+    dataFolder = f"{args.dataFolder}/processed/osm"
+
     global OVERWRITE
     OVERWRITE = rebuild
-    Path(dataFolder).mkdir(exist_ok=True)
-    
-    build_query(region, key, value, type, tags)
-    download_osm(region, type)
-    generate_coordinate_table(region, type)
-    if removeAirport:
-        remove_logan_airport_shops_inplace(f"data/{region}{type}_Coordinates.csv")
-    if removeIsland:
-        remove_island_locations_from_csv(region, type)
+    Path(args.dataFolder).mkdir(exist_ok=True)
+    # Defining region, key, and value
+    if args.region == "Boston":
+        region = 'Boston'
+        key = 'wikipedia'
+        value = 'en:Boston'
+    elif args.region == "Cambridge":
+        region = 'Cambridge'
+        key = 'wikipedia'
+        value = 'en:Cambridge, Massachusetts'
+    elif args.region == "Brookline":
+        region = 'Brookline'
+        key = 'wikipedia'
+        value = 'en:Brookline, Massachusetts'
+    elif args.region == "Somerville":
+        region = 'Somerville'
+        key = 'wikipedia'
+        value = 'en:Somerville, Massachusetts'
+    else:
+        raise ValueError("A key-value pair has not been written for the inputted town.")
+    TypesAndTags = {
+        'Store' : ['shop=supermarket', 'shop=convenience'], 
+        'Greenspace': ['leisure=park'],
+        'Healthcare' : ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], 
+        'TransitStation' : ['public_transport=station', 'highway=bus_stop'], 
+        'School' : ['amenity=school']
+    }
+    # Island filter, Airport filter
+    TypesAndFilters = {
+        'Store' : [True, True],
+        'Greenspace': [True, False],
+        'Healthcare' : [True, False], 
+        'TransitStation' : [True, False], 
+        'School' : [True, False]
+    }
+
+    #Run pipeline
+    for type, tags in TypesAndTags.items():
+        build_query(region, key, value, type, tags)
+        download_osm(region, type, dataFolder)
+        elements = read_raw_file(region, type, dataFolder)
+        features = stores_name_geometry_type(elements, type)
+        gdf_locations = eliminate_overlaps(features, region)
+        store_as_csv(gdf_locations, region, type, dataFolder)
+        if TypesAndFilters.get(type)[1]:
+            remove_logan_airport(f"{dataFolder}/{region}{type}_Coordinates.csv")
+        if TypesAndFilters.get(type)[0]:
+            remove_island_locations(f"{dataFolder}/{region}{type}_Coordinates.csv")
 
 if __name__ == '__main__':
-    city = ['Boston', 'wikipedia', 'en:Boston']
-    #main(*city, 'Store', ['shop=supermarket', 'shop=convenience'], removeIsland=True, removeAirport=True, rebuild=True)
-    #main(*city, 'Greenspace', ['leisure=park'],removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'Healthcare', ['amenity=pharmacy', 'amenity=hospital', 'amenity=doctors', 'amenity=dentist', 'amenity=clinic'], removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'Office', ['office'],removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'TransitStation', ['public_transport=station', 'highway=bus_stop'], removeIsland=True, removeAirport=False, rebuild=True)
-    #main(*city, 'School', ['amenity=school'], removeIsland=True, removeAirport=False, rebuild=True)
+    main(rebuild=True)
