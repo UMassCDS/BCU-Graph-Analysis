@@ -39,6 +39,8 @@ The analysis is organized in stages, each as a subpackage under `src/bcu_analysi
    `od_generation/config/demand_parameters.csv`, writing columns
    `origin_node, destination_node, category, count`.
 
+5. **`corridor_analysis/`** — Isolates connected low-stress (LTS 1 & 2) "safe zones" into discrete islands and computes the highest-ROI missing link corridors to bridge them. Generates interactive PyDeck/Streamlit visualizations, updated GraphML networks, and GeoPackage (`.gpkg`) files for QGIS integration.
+
 ## Getting Started
 
 ### Installing Dependencies and Packages
@@ -73,6 +75,19 @@ Reads the per-category trip counts for the chosen scenario from
 `od_generation/config/demand_parameters.csv`, runs the LODES and POI generators, and
 writes the combined OD demand CSV consumed by the one-way analysis.
 
+### Running Corridor & Missing Link Analysis
+The corridor analysis can be run via the command-line script for batch GIS exports or explored interactively via the Streamlit dashboard.
+
+Run to generate (HTML maps, .gpkg, .graphml) via CLI:
+```
+python src/bcu_analysis/corridor_analysis/run_corridors.py boston --data-dir ./data --output-dir ./outputs
+Note: You can replace boston with greater_boston(To view Boston, Cambridge, Somerville, and Brookline). Use the --help flag to adjust parameters like --min-island-size and --link-complexity.
+```
+To view the streamlit dashboard:
+```
+streamlit run src/bcu_analysis/corridor_analysis/dashboard.py
+```
+
 ## Directory Structure
 
 ```
@@ -98,7 +113,12 @@ writes the combined OD demand CSV consumed by the one-way analysis.
 │           ├── generate_od_demand.py     #   Combine LODES + POI demand for a scenario
 │           ├── lodes_io.py / lodes_pairs.py / lodes_sampling.py   # LODES commutes
 │           ├── build_poi_od_pairs.py / poi_destination_choice.py  # POI trips
-│           └── config/demand_parameters.csv
+│           └── config/demand_parameters.csv  
+│       └── corridor_analysis             # Missing link computation and visualization
+│              ├── run_corridors.py          #   CLI runner for batch processing and GIS export
+│              ├── dashboard.py              #   Interactive Streamlit dashboard
+│              ├── core_algorithms.py        #   Island detection and missing link logic
+│              └── export_utils.py           #   PyDeck rendering and file export utilities
 ├── docs                                  # Documentation + Sphinx auto-doc setup
 │   └── census_assignment.md
 ├── tests
