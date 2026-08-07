@@ -1,87 +1,138 @@
 # Census-to-node population assignment
 
-This workflow assigns census tract population to graph nodes using deterministic area-based allocation.
+This workflow assigns Census tract population to graph nodes using deterministic
+Voronoi-style area shares.
+
+## Region-selectable CLI
+
+Use one command for either a single municipality or the combined four-city study
+area:
+
+```bash
+python src/bcu_analysis/census/run_census_assignment.py \
+  --region REGION \
+  --graph-path /path/to/graph.graphml
+```
+
+Supported region values are:
+
+- `boston`
+- `brookline`
+- `cambridge`
+- `somerville`
+- `greater-boston`
+
+`greater-boston` means Boston, Brookline, Cambridge, and Somerville combined.
+
+The graph path is required. This keeps graph provenance explicit and avoids
+silently treating a legacy or locally generated graph as the canonical input.
+
+Examples:
+
+```bash
+# Combined four-city assignment using the pruned analysis graph
+python src/bcu_analysis/census/run_census_assignment.py \
+  --region greater-boston \
+  --graph-path /path/to/greater_boston_6_cost_simplified_pruned.graphml \
+  --tract-path /path/to/ma_tracts_population.geojson \
+  --output-directory /path/to/results \
+  --output-prefix greater_boston_pruned
+
+# Boston tracts assigned to nodes from the same supplied graph
+python src/bcu_analysis/census/run_census_assignment.py \
+  --region boston \
+  --graph-path /path/to/greater_boston_6_cost_simplified_pruned.graphml \
+  --tract-path /path/to/ma_tracts_population.geojson \
+  --output-directory /path/to/results \
+  --output-prefix boston_pruned
+```
+
+Alternative tract and output locations can be supplied explicitly:
+
+```bash
+python src/bcu_analysis/census/run_census_assignment.py \
+  --region cambridge \
+  --graph-path /path/to/graph.graphml \
+  --tract-path /path/to/ma_tracts_population.geojson \
+  --output-directory /path/to/results \
+  --output-prefix cambridge_analysis
+```
+
+## Region and graph scope
+
+`--region` controls which municipal boundary is used to retain Census tracts.
+It does not crop the supplied graph.
+
+The allocation CSV contains only node-tract allocation rows for retained tracts.
+The node spatial outputs retain every node in the supplied graph. Nodes that do
+not receive an allocation remain in those node outputs with assigned population
+equal to zero.
+
+This distinction allows one graph to be reused for localized analyses while
+keeping the graph input explicit.
+
+## Output naming
+
+If `--output-prefix` is omitted, output filenames use the selected region, such
+as `greater_boston_node_tract_allocation.csv`.
+
+Use an explicit prefix when the graph has an important processing state:
+
+- `greater_boston_pruned`
+- `greater_boston_unpruned`
+- `boston_pruned`
+
+The program does not infer that a graph is pruned from the region selection.
 
 ## Inputs
 
-The workflow uses:
+The default Census tract input on Unity is:
 
-- A processed graph file, currently `data/processed/osm/greater_boston_cost_simplified.graphml`
-- Official Massachusetts 2024 Census/TIGER tract geometries
-- ACS population data
-- A processed tract population GeoJSON with population joined to tract geometries
+- `ma_tracts_population.geojson`
 
-The project does not create custom tract boundaries. It uses official census tract geometries and attaches population values to them.
+The tract file must contain:
 
-## Main algorithm
+- `GEOID`
+- `population`
+- tract geometry
 
-For each census tract, the assignment function:
+The graph is always supplied through `--graph-path`.
+
+## Assignment method
+
+For each retained Census tract, the shared assignment function:
 
 1. Projects graph nodes and tracts to `EPSG:26986`.
-2. Filters tracts to the Boston region.
-3. Finds candidate graph nodes inside or near the tract.
-4. Builds Voronoi regions from candidate nodes.
-5. Clips each Voronoi region to the tract polygon.
-6. Computes each node's clipped tract area share.
-7. Assigns tract population proportionally by area share.
-8. Normalizes area shares so each tract sums to 1.
-9. Saves diagnostic columns for validation.
-10. Sorts output by tract ID and node ID for deterministic results.
+2. Keeps tracts meeting the selected region-overlap threshold.
+3. Finds graph nodes inside or near each tract.
+4. Builds Voronoi-style nearest-node regions.
+5. Clips those regions to the tract.
+6. Computes each node's area share.
+7. Normalizes area shares so each tract sums to 1.
+8. Assigns tract population proportionally to those normalized shares.
 
-## Main parameters
+Default parameters are:
 
-The final Boston run used:
-
-- `candidate_buffer_m=100`
-- `tract_filter_method="convex_hull"`
-- Boston boundary from OSMnx
-- `min_region_overlap_share=0.50`
+- candidate-node buffer: 100 meters
+- minimum tract overlap with the selected region: 0.50
 - calculation CRS: `EPSG:26986`
 - web output CRS: `EPSG:4326`
 
+These can be changed with:
 
-## Processed graph choice
-
-The workflow was tested with both the older `Boston_3.graphml` graph and the processed simplified graph.
-
-The processed simplified graph is now preferred because it preserves the same assigned tract count and population total while using fewer graph nodes and producing fewer allocation rows.
-
-Comparison:
-
-- Old `Boston_3.graphml`
-  - nodes: 241,429
-  - assigned nodes: 232,039
-  - allocation rows: 267,991
-  - assigned tracts: 206
-  - total assigned population: 666,442.0
-
-- New `greater_boston_cost_simplified.graphml`
-  - nodes: 97,850
-  - assigned nodes: 63,652
-  - allocation rows: 76,488
-  - assigned tracts: 206
-  - total assigned population: 666,442.0
-
-Validation with the processed simplified graph:
-
-- negative populations: 0
-- one-node tracts: 0
-- bad area-share sums: 0
-- coverage ratio approximately 1.0
+- `--candidate-buffer-m`
+- `--min-region-overlap-share`
 
 ## Outputs
 
-Typical generated outputs include:
+For a run with `--output-prefix greater_boston_pruned`, the generated files are:
 
-- `Boston_nodes_with_population_web.geojson`
-- `Boston_node_tract_allocation.csv`
-- `Boston_census_assignment_map.html`
-
-Large generated outputs should not be committed to Git unless the team decides to track data with Git LFS or DVC.
-
-The runnable census workflow files live under `src/bcu_analysis/census/`.
-
-## Diagnostics
+- `greater_boston_pruned_node_tract_allocation.csv`
+- `greater_boston_pruned_node_tract_allocation.parquet`
+- `greater_boston_pruned_nodes_with_population.gpkg`
+- `greater_boston_pruned_nodes_with_population.parquet`
+- `greater_boston_pruned_nodes_with_population_web.geojson`
+- `greater_boston_four_city_boundary.geojson`
 
 The allocation table includes:
 
@@ -90,10 +141,17 @@ The allocation table includes:
 - `tract_coverage_ratio`
 - `assigned_population`
 
-These columns help verify that Voronoi cells cover each tract and that population is conserved.
+The command prints node, tract, population, and area-share validation summaries
+after each run.
+
+Large generated outputs should not be committed to Git unless the team decides
+to track data with Git LFS or DVC.
 
 ## Limitations
 
-This is an area-based approximation. It does not know actual building-level or parcel-level residential distribution inside each tract.
+This is an area-based approximation. It does not use building-level, parcel-level,
+or household-level residential locations.
 
-The current workflow keeps or removes whole tracts based on Boston boundary overlap. It does not clip tract population to only the part of a tract inside Boston.
+The overlap threshold retains or removes whole Census tracts. It does not
+proportionally reduce a tract's population when only part of the tract lies inside
+the selected municipal boundary.
