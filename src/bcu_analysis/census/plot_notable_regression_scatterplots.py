@@ -21,7 +21,6 @@ from bcu_analysis.census.run_tract_accessibility_regressions import (
     PREDICTORS,
 )
 
-
 PREDICTOR_LABELS = {
     "share_under_18": "Population under age 18",
     "share_age_65_plus": "Population age 65 and older",

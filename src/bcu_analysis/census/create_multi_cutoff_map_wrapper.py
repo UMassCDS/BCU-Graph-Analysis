@@ -9,7 +9,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 REQUIRED_MANIFEST_COLUMNS = {
     "cutoff_tag",
     "cutoff_miles",
