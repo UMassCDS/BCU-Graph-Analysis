@@ -4,10 +4,8 @@ import time
 
 import pandas as pd
 
+from bcu_analysis.graph_builder.build_cost_graph import CITY_OPTIONS, resolve_area
 from bcu_analysis.one_way_evaluation.route_asymmetry import (
-    DEFAULT_GRAPH_PATH,
-    DEFAULT_OD_PATH,
-    DEFAULT_SCORES_CSV,
     accumulate_asymmetry,
     asymmetry_edges_df,
     load_cost_graph,
@@ -15,23 +13,74 @@ from bcu_analysis.one_way_evaluation.route_asymmetry import (
 
 
 def main(
-    graph_path=DEFAULT_GRAPH_PATH,
-    od_path=DEFAULT_OD_PATH,
-    out_csv=DEFAULT_SCORES_CSV,
+    area,
+    cost_scenario,
+    demand_scenario=1,
+    data_dir=None,
+    out_csv=None,
     workers=None,
 ):
     """
     Route every OD pair both ways, accumulate route asymmetry onto the cheaper
     route's segments, and write a per-edge CSV of scores to disk.
 
+    Inputs are derived from the area and the scenario ids, matching the layout written
+    by graph_builder/build_cost_graph.py and od_generation/generate_od_demand.py: the
+    simplified graph under ``output/cost_scenarios/cost_scenario_{cost_scenario}/`` and
+    the combined OD pairs under
+    ``output/demand_scenarios/demand_scenario_{demand_scenario}/``. Scores depend on
+    both scenarios, so the output filename carries both ids.
+
     The CSV is keyed by the edge (u, v, key) so it can be joined back to the graph
     for geometry when plotting, without persisting the full geometry.
 
-    workers defaults to the CPU count; routing is parallelised across processes.
+    Parameters:
+    - area (str): Municipality key or 'greater_boston'; resolved to a region name by
+      graph_builder.build_cost_graph.resolve_area so it matches the graph on disk.
+    - cost_scenario (int): Cost scenario id whose simplified graph is routed on.
+    - demand_scenario (int | str): Demand scenario id whose OD pairs are routed.
+    - data_dir (str): Root data directory (the parent of raw/, processed/, output/).
+    - out_csv (str | None): Override for the scores CSV; derived from the scenarios
+      when None.
+    - workers (int | None): Number of routing processes; defaults to the CPU count.
+
+    Returns:
+    - pd.DataFrame: per-edge scores, one row per graph edge.
     """
+    if data_dir is None:
+        raise ValueError("data_dir is required.")
+
+    region_name, _ = resolve_area(area)
+
+    data_dir = data_dir.rstrip("/")
+    cost_dir = f"{data_dir}/output/cost_scenarios/cost_scenario_{cost_scenario}"
+    demand_dir = f"{data_dir}/output/demand_scenarios/demand_scenario_{demand_scenario}"
+
+    graph_path = f"{cost_dir}/{region_name}_cost_scenario_{cost_scenario}_simplified.graphml"
+    od_path = f"{demand_dir}/{region_name}_all_pairs_demand_scenario_{demand_scenario}.csv"
+    if out_csv is None:
+        out_csv = (
+            f"{data_dir}/processed/one_way_evaluation/"
+            f"{region_name}_route_asymmetry_DS{demand_scenario}_CS{cost_scenario}.csv"
+        )
+
+    if not os.path.exists(graph_path):
+        raise FileNotFoundError(
+            f"Cost graph not found: {graph_path}. Build it first with "
+            f"'python src/bcu_analysis/graph_builder/build_cost_graph.py {cost_scenario} {area} "
+            f"--data-dir {data_dir}'."
+        )
+    if not os.path.exists(od_path):
+        raise FileNotFoundError(
+            f"OD pairs not found: {od_path}. Generate them first with "
+            f"'python src/bcu_analysis/od_generation/generate_od_demand.py {cost_scenario} {area} "
+            f"--demand-scenario {demand_scenario} --data-dir {data_dir}'."
+        )
+
     if workers is None:
         workers = os.cpu_count() or 1
 
+    print(f"Region {region_name}, cost scenario {cost_scenario}, demand scenario {demand_scenario}")
     print(f"Loading cost graph from {graph_path}")
     load_start = time.perf_counter()
     G = load_cost_graph(graph_path)
@@ -61,9 +110,32 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Score street segments by OD/DO route-cost asymmetry (contra-flow candidates)."
     )
-    parser.add_argument("--graph-path", default=DEFAULT_GRAPH_PATH)
-    parser.add_argument("--od-path", default=DEFAULT_OD_PATH)
-    parser.add_argument("--out-csv", default=DEFAULT_SCORES_CSV)
+    parser.add_argument(
+        "cost_scenario",
+        type=int,
+        help="Cost scenario id whose simplified graph should be routed on",
+    )
+    parser.add_argument(
+        "area",
+        choices=CITY_OPTIONS,
+        help="Municipality to score, or 'greater_boston' for all of them combined.",
+    )
+    parser.add_argument(
+        "--demand-scenario",
+        type=int,
+        default=1,
+        help="Demand scenario id whose OD pairs should be routed",
+    )
+    parser.add_argument(
+        "--data-dir",
+        required=True,
+        help="Root data directory",
+    )
+    parser.add_argument(
+        "--out-csv",
+        default=None,
+        help="Override the derived path for the per-edge scores CSV",
+    )
     parser.add_argument(
         "--workers",
         type=int,
@@ -72,8 +144,10 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     main(
-        graph_path=args.graph_path,
-        od_path=args.od_path,
+        area=args.area,
+        cost_scenario=args.cost_scenario,
+        demand_scenario=args.demand_scenario,
+        data_dir=args.data_dir,
         out_csv=args.out_csv,
         workers=args.workers,
     )
