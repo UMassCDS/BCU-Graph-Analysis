@@ -306,6 +306,7 @@ def main(rebuild=False):
     # Argparser
     parser = argparse.ArgumentParser(description="Parameters to determine the type and filtering of destinations and the region being considered.")
     parser.add_argument("dataFolder", type=str, help="The path that all outputs are being stored.")
+    # Original dataFolder = '/work/pi_plunkett_umass_edu/bcu/data/processed/osm'
     parser.add_argument("region", type=str, help="The region being considered.(Options: Boston, Brookline, Cambridge, and Somerville)")
     args = parser.parse_args() 
     print("Working Under...")
