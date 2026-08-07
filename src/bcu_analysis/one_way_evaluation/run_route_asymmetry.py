@@ -5,6 +5,9 @@ import time
 import pandas as pd
 
 from bcu_analysis.one_way_evaluation.route_asymmetry import (
+    DEFAULT_GRAPH_PATH,
+    DEFAULT_OD_PATH,
+    DEFAULT_SCORES_CSV,
     accumulate_asymmetry,
     asymmetry_edges_df,
     load_cost_graph,
@@ -12,9 +15,9 @@ from bcu_analysis.one_way_evaluation.route_asymmetry import (
 
 
 def main(
-    graph_path,
-    od_path,
-    out_csv,
+    graph_path=DEFAULT_GRAPH_PATH,
+    od_path=DEFAULT_OD_PATH,
+    out_csv=DEFAULT_SCORES_CSV,
     workers=None,
 ):
     """
@@ -58,21 +61,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Score street segments by OD/DO route-cost asymmetry (contra-flow candidates)."
     )
-    parser.add_argument(
-        "--graph-path",
-        required=True,
-        help="Simplified LTS cost GraphML file.",
-    )
-    parser.add_argument(
-        "--od-path",
-        required=True,
-        help="CSV containing origin and destination nodes.",
-    )
-    parser.add_argument(
-        "--out-csv",
-        required=True,
-        help="Output CSV for per-edge asymmetry scores.",
-    )
+    parser.add_argument("--graph-path", default=DEFAULT_GRAPH_PATH)
+    parser.add_argument("--od-path", default=DEFAULT_OD_PATH)
+    parser.add_argument("--out-csv", default=DEFAULT_SCORES_CSV)
     parser.add_argument(
         "--workers",
         type=int,

@@ -19,12 +19,6 @@ def lts_edges(region, gdf_edges, data_dir):
     filepathAll = f"{data_dir}/processed/osm/{region}_all_lts.csv"
     os.makedirs(os.path.dirname(filepathAll), exist_ok=True)
 
-    diagnostic_directory = os.path.join(
-        data_dir,
-        "processed",
-        "osm",
-    )
-
     # Load the configuration files to caluclate ratings
     rating_dict = lts.read_rating()
     tables = lts.read_tables()
@@ -36,13 +30,7 @@ def lts_edges(region, gdf_edges, data_dir):
     gdf_edges = lts.convert_both_tag(gdf_edges)
 
     # Process bike lanes
-    gdf_edges = lts.parse_lanes(
-        gdf_edges,
-        log_path=os.path.join(
-            diagnostic_directory,
-            f"{region}_log_parse.csv",
-        ),
-    )
+    gdf_edges = lts.parse_lanes(gdf_edges)
 
     # Process non-directional data
     gdf_edges = lts.get_prevailing_speed(gdf_edges, rating_dict)
@@ -56,16 +44,8 @@ def lts_edges(region, gdf_edges, data_dir):
 
     gdf_edges = lts.LTS_separation(gdf_edges)
 
-    lts.column_value_counts(
-        gdf_edges,
-        log_directory=diagnostic_directory,
-    )  # Useful for debugging
-
-    all_lts = lts.calculate_lts(
-        gdf_edges,
-        tables,
-        log_directory=diagnostic_directory,
-    )
+    lts.column_value_counts(gdf_edges) # Useful for debugging
+    all_lts = lts.calculate_lts(gdf_edges, tables)
 
     gdf_edges = lts.define_zoom(gdf_edges, rating_dict)
 
