@@ -91,7 +91,7 @@ def main() -> None:
                 cutoff_miles=args.cutoff_miles,
                 cost_field=args.cost_field,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             node_data = graph.nodes[origin]
             result = {
                 "node_id": origin,

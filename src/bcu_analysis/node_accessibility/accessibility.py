@@ -5,11 +5,10 @@ from __future__ import annotations
 import ast
 import heapq
 import math
+from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
-from typing import Hashable, Iterable
 
 import networkx as nx
-
 
 METERS_PER_MILE = 1609.344
 DEFAULT_CUTOFF_MILES = 1.5

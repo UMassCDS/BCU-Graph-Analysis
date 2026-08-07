@@ -139,7 +139,7 @@ def main() -> None:
             append_result(output_path, result)
             successful += 1
 
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             append_failure(
                 failure_path,
                 origin,

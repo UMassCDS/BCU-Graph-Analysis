@@ -13,7 +13,6 @@ from bcu_analysis.node_accessibility.accessibility import (
     calculate_node_accessibility,
 )
 
-
 RESULT_FIELDS = [
     "node_id",
     "longitude",
@@ -260,7 +259,7 @@ def main() -> None:
             )
             successful_this_run += 1
 
-        except Exception as error:
+        except Exception as error:  # noqa: BLE001
             append_failure(
                 args.failure_path,
                 origin,

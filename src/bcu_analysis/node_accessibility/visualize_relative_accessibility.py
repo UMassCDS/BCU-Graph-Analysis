@@ -147,14 +147,14 @@ def main() -> None:
         value = float(row.median_accessibility)
 
         tooltip = folium.Tooltip(
-            (
+
                 f"<b>Median relative accessibility:</b> "
                 f"{value:.3f}<br>"
                 f"<b>Mean relative accessibility:</b> "
                 f"{row.mean_accessibility:.3f}<br>"
                 f"<b>Nodes represented:</b> "
                 f"{row.node_count:,}"
-            )
+
         )
 
         folium.CircleMarker(
