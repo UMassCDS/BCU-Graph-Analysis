@@ -16,4 +16,4 @@ python -u src/bcu_analysis/od_generation/generate_od_demand.py \
     greater_boston \
     --demand-scenario 1 \
     --data-dir /work/pi_plunkett_umass_edu/bcu/final \
-    --pop-geojson-path /work/pi_plunkett_umass_edu/bcu/final/processed/census/results/greater_boston_cost_scenario_1_nodes_with_population_web.geojson
+    --pop-geojson-path /work/pi_plunkett_umass_edu/bcu/final/census_results/greater_boston_cost_scenario_1_nodes_with_population_web.geojson
