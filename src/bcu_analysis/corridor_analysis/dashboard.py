@@ -19,8 +19,8 @@ max_islands = st.sidebar.slider("Top Islands to Display", min_value=2, max_value
 show_missing_links = st.sidebar.checkbox("Show Proposed Missing Links", value=True)
 link_complexity = st.sidebar.slider("Corridor Bridging Depth", min_value=1, max_value=15, value=10, step=1)
 
-GRAPH_DIR = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis")
-POI_DIR = Path("/work/pi_plunkett_umass_edu/bcu/data/processed/osm")
+GRAPH_DIR = Path("/processed/road_usage_analysis")
+POI_DIR = Path("/processed/osm")
 
 GRAPH_PATH = GRAPH_DIR / f"{area}_cost_with_pathCount_DS{demand_scenario}_CS{cost_scenario}.graphml"
 
