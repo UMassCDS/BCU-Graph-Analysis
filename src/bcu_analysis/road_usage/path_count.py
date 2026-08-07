@@ -530,7 +530,7 @@ def main():
     else:
         raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'")
 
-    Path(OD_FOLDER).mkdir(
+    Path(OUTPUT_FOLDER).mkdir(
         parents=True,
         exist_ok=True,
     )
