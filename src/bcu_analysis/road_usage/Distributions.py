@@ -1,8 +1,9 @@
 import networkx as nx
 import pandas as pd
 import argparse
+from pathlib import Path
 
-def distributions(graph_path, graph_file, graph_name, output_path, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit):
+def distributions(graph_path, graph_file, output_name, output_path, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit):
 
     print("Loading graph...")
     G = nx.read_graphml(f"{graph_path}{graph_file}")
@@ -23,7 +24,8 @@ def distributions(graph_path, graph_file, graph_name, output_path, path_count, d
 
     #Convert to a Pandas DataFrame
     df = pd.DataFrame(edge_attributes)
-    df.to_csv(f'{output_path}{graph_name}.csv', index=False)
+    df.to_csv(f'{output_path}{output_name}.csv', index=False)
+    print(f"Saved edge data to: {output_path}{output_name}.csv")
 
     print(f"For {graph_file}...")
     if path_count:
@@ -74,19 +76,23 @@ def main():
     parser.add_argument("--no_cost", action="store_false", help="Call if the distribution of 'cost' is not wanted")
     parser.add_argument("--no_usage_stress", action="store_false", help="Call if the distribution of 'usage_stress' is not wanted")
     parser.add_argument("--no_potential_Dbenefit", action="store_false", help="Call if the distribution of 'potential_Dbenefit' is not wanted")
-    args = parser.add_help()
+    args = parser.parse_args()
 
     if args.region == "All":
         graphFile = f"greater_boston_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
-        graphName = f"Greater Boston for Demand Scenario {args.demandScenario} and Cost Scenario {args.costScenario}"
+        outputName = f"edges_greater_boston_DS{args.demandScenario}_CS{args.costScenario}"
     elif args.region in ['Boston', 'Brookline', 'Cambridge', 'Somerville', 'All']:
         graphFile = f"{args.region}_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
-        graphName = f"{args.region} for Demand Scenario {args.demandScenario} and Cost Scenario {args.costScenario}"
+        outputName = f"edges_{args.region}_DS{args.demandScenario}_CS{args.costScenario}"
     else:
         raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'.")
 
     graphPath = f"{args.dataFolder}/processed/road_usage_analysis/"
-    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/DistributionAnalysis"
+    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/DistributionAnalysis/"
+    Path(outputPath).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
     path_count = args.no_path_count
     distance = args.no_distance
     max_lts = args.no_max_lts
@@ -94,7 +100,7 @@ def main():
     usage_stress = args.no_usage_stress
     potential_Dbenefit = args.no_potential_Dbenefit
 
-    distributions(graphPath, graphFile, graphName, outputPath, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit)
+    distributions(graphPath, graphFile, outputName, outputPath, path_count, distance, max_lts, cost, usage_stress, potential_Dbenefit)
 
 if __name__ == '__main__':
     main()

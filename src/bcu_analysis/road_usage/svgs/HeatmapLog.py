@@ -5,6 +5,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 import numpy as np
 import argparse
+from pathlib import Path
 
 def loadgraph(graph_path='/work/pi_plunkett_umass_edu/bcu/data/processed/road_usage_analysis/', graph_file="boston_only_usage.graphml"):
     print("Loading graph...")
@@ -165,13 +166,14 @@ def generateImage(G, edges, attributeName, lowerThreshold, upperThreshold, Outpu
         f"{OutputPath}{outputName}.svg", dpi=300, bbox_inches="tight", format="svg"
     )
     print(f"Completed Figure for {attributeName}!")
+    print(f"Figure saved to: {OutputPath}{outputName}.svg")
 
 
 
 
 
 def main():
-    parser = argparse.ArgumentParser(decription="Defining for what data and for what edge attribute to make a heatmap.")
+    parser = argparse.ArgumentParser(description="Defining for what data and for what edge attribute to make a heatmap.")
     parser.add_argument("dataFolder", type=str, help="The main folder which the data is stored (and the images will be saved to).")
     parser.add_argument("region", type=str, help="The region being considered (Options: Boston, Brookline, Cambridge, Somerville, or All).")
     parser.add_argument("demandScenario", type=int, help="The specific demand scenario being considered (the number that identifies the scenario)")
@@ -183,7 +185,11 @@ def main():
     args = parser.parse_args()
 
     GraphPath = f"{args.dataFolder}/processed/road_usage_analysis/"
-    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/Heatmaps"
+    outputPath = f"{args.dataFolder}/processed/road_usage_analysis/Heatmaps/"
+    Path(outputPath).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
     if args.attribute == "usage":
         attributeName = "Usage"
         attributeToGraph = 'path_count'
@@ -204,7 +210,7 @@ def main():
             outputName = f"greater_boston_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}"
         else:
             outputName = f"greater_boston_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}Unfiltered"
-    if args.region in ['Boston', 'Brookline', 'Cambridge', 'Somerville']:
+    elif args.region in ['Boston', 'Brookline', 'Cambridge', 'Somerville']:
         Graph_File = f"{args.region}_metrics_DS{args.demandScenario}_CS{args.costScenario}.graphml"
         if args.onlyLTS3and4:
             outputName = f"{args.region}_heatmap_DS{args.demandScenario}_CS{args.costScenario}_{attributeName}"

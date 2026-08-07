@@ -530,10 +530,10 @@ def main():
     else:
         raise ValueError("Invalid region. Please try 'Boston', 'Brookline', 'Cambridge', 'Somerville', or 'All'")
 
-    #Path(args.dataFolder).mkdir(
-    #    parents=True,
-    #    exist_ok=True,
-    #)
+    Path(OD_FOLDER).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     start_time = perf_counter()
 
