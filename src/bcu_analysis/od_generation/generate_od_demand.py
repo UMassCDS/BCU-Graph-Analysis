@@ -16,6 +16,16 @@ DEFAULT_CONFIG_PATH = os.path.join(
     os.path.dirname(__file__), "config", "demand_parameters.csv"
 )
 
+# Node-level population weights, produced by the census_assignment stage. That stage has not
+# been migrated to the region_name/data_dir convention yet (it writes fixed Boston filenames),
+# so this default is Boston-only regardless of the area requested. Override with
+# --pop-geojson-path once region-specific files exist.
+DEFAULT_POP_GEOJSON = (
+    "/work/pi_plunkett_umass_edu/bcu/data/processed/census/results/"
+    "Boston_nodes_with_population_web.geojson"
+)
+
+
 def load_demand(scenario_id=1, config_path=DEFAULT_CONFIG_PATH):
     """
     Read per-category trip counts for a demand scenario from demand_parameters.csv.
@@ -60,7 +70,7 @@ def main(
     demand_scenario=1,
     data_dir=None,
     config_path=DEFAULT_CONFIG_PATH,
-    pop_geojson_path=None,
+    pop_geojson_path=DEFAULT_POP_GEOJSON,
     output_path=None,
     random_seed=None,
 ):
@@ -143,12 +153,6 @@ def main(
     # POI trips for every other category.
     poi_counts = {k: v for k, v in counts.items() if k != LODES_CATEGORY}
     if poi_counts:
-        if pop_geojson_path is None:
-            raise ValueError(
-                "pop_geojson_path is required when the demand "
-                "scenario contains POI trips."
-            )
-
         poi = build_poi_od_pairs(
             graph_path=graph_path,
             pop_geojson_path=pop_geojson_path,
@@ -204,12 +208,8 @@ if __name__ == "__main__":
     parser.add_argument("--config-path", default=DEFAULT_CONFIG_PATH)
     parser.add_argument(
         "--pop-geojson-path",
-        default=None,
-        help=(
-            "Node-level population GeoJSON used to weight POI "
-            "home sampling. Required for scenarios containing "
-            "POI trips."
-        ),
+        default=DEFAULT_POP_GEOJSON,
+        help="Node-level population geojson used to weight POI home sampling (Boston-only today)",
     )
     parser.add_argument(
         "--output-path",
