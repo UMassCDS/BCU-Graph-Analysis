@@ -1,45 +1,56 @@
 # BCU Graph Analysis
 
-Analysis of bicycle connectivity and Level of Traffic Stress (LTS) for
+Analysis of bicycle connectivity with regards to difficulty of use of the network and Level of Traffic Stress (LTS) for
 the Greater Boston area, built by the DS4CG Boston Cyclists Union Team.
 
 The project builds a routable street network graph from OpenStreetMap in which each
-edge's travel "cost" reflects how difficult it is to bike (edge length scaled by a stress rating), attaches census population and travel demand to the network. The future goal is to utilize this graph representation to identify which segments would be most benificial to improve.
+edge's- or road segment's- travel "cost" reflects how difficult it is to bike (edge length scaled by a stress rating), attaches census population, and models travel demand to the network. The future goal is to utilize this graph representation to identify which road segments would be most beneficial to improve.
 
 ## Modules
 
-The analysis is organized in stages, each as a subpackage under `src/bcu_analysis/`. Each step depends on the previous, so they should normally be run in order.
+The analysis is organized in stages, each as a sub-package under `src/bcu_analysis/`. Each step depends on the previous, so they should normally be run in order.
 
 1. **`graph_builder/`** — Download OpenStreetMap data for the region (Boston,
-   Cambridge, Somerville, Brookline), compute a Level of Traffic
-   Stress (LTS)
-   rating for every edge, and build a routable "cost" graph where
-   `cost = length × LTS stress multiplier`. Higher-stress edges are penalized so
+   Cambridge, Somerville, Brookline, or All four cities), determine a Level of Traffic
+   Stress (LTS) rating for every edge, and build a routable "cost" graph where
+   `cost = length × LTS stress multiplier` (the LTS stress multipliers are modifiable
+   for different scenarios). Higher-stress edges are penalized so
    routing prefers low-stress streets. The graph is then simplified for faster
    routing.
 
-2. **`destination_csvs/`** — Query OSM (via the Overpass API) for destination points
-   of interest including schools, healthcare, transit stations, stores, greenspace and
-   write these locations of intrest to coordinate CSVs.
+2. **`destination_csvs/`** — Query OSM (via the Overpass API) over the region of choice
+   (Boston, Brookline, Cambridge, Somerville, or All four cities) for destination points
+   of interest including schools, healthcare facilities, transit stations, stores, and
+   greenspaces and write these locations of interest to coordinate CSVs. Multiple separate
+   CSVs are created for each type of destination (ex. schools, transit stations, etc.),
+   which are then combined into a master CSV containing all destinations for the given region. 
 
 3. **`census/`** — Assign census-tract population to graph nodes using deterministic,
-   area-weighted Voronoi allocation. `build_census_tracts.py` joins TIGER tract
-   geometry to ACS population; `assignment.py` performs the allocation;
-   `run_census_assignment.py` is the runner.
+   area-weighted Voronoi allocation. `build_census_tracts.py` joins the population value of a tract to
+   the associated tract geometry; `assignment.py` performs the allocation of population to nodes
+   (or intersections) on the graph; and `run_census_assignment.py` is the runner.
 
 4. **`od_generation/`** — Generate travel demand as a set of Origin Destination (OD) pairs over the
    graph. Two generators feed a single combined demand file:
    - **LODES commutes** (`lodes_io.py`, `lodes_pairs.py`, `lodes_sampling.py`):
      home→work trips built from Census LODES data, sampled to favor shorter, more bikeable trips.
-   - **Population-weighted POI trips** (`build_poi_od_pairs.py`,
-     `poi_destination_choice.py`): homes drawn in proportion to assigned population (see census module),
-     paired to destination POIs from earlier downloaded destination csvs by specific rules that vary by category.
+   - **Population-weighted POI trips** (`build_poi_od_pairs.py`, `poi_destination_choice.py`):
+     Homes (nodes on the graph) are drawn in proportion to assigned population so higher-population points are more likely
+     to be chosen (see census module). Destination points (from the `destination_csvs/` module) are snapped to the closest
+     node on the graph. Homes are then paired to destination POIs, or points of interest, by specific rules that vary by
+     category.
 
-   `generate_od_demand.py` combines both for a demand scenario defined in
-   `od_generation/config/demand_parameters.csv`, writing columns
+   `generate_od_demand.py` combines both the **Population-weighted POI trips** and the **LODES commutes** for a demand
+   scenario defined in `od_generation/config/demand_parameters.csv`, writing columns
    `origin_node, destination_node, category, count`.
 
-5. **`corridor_analysis/`** — Isolates connected low-stress (LTS 1 & 2) "safe zones" into discrete islands and computes the highest-ROI missing link corridors to bridge them. Generates interactive PyDeck/Streamlit visualizations, updated GraphML networks, and GeoPackage (`.gpkg`) files for QGIS integration.
+5. **road_usage/** —
+
+6. **one_way_evaluation/** —
+
+7. **`corridor_analysis/`** — Isolates connected low-stress (LTS 1 & 2) "safe zones" into discrete islands and computes the highest-ROI missing link corridors to bridge them. Generates interactive PyDeck/Streamlit visualizations, updated GraphML networks, and GeoPackage (`.gpkg`) files for QGIS integration.
+
+8. **node_accessibility/** —
 
 ## Getting Started
 
@@ -56,7 +67,7 @@ The analysis is organized in stages, each as a subpackage under `src/bcu_analysi
    python -m pip install -e '.[test,dev]'
    ```
 
-## Running the analyses
+## Running the Pipeline
 
 ### Building the graph and destinations
 
