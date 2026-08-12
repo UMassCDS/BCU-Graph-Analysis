@@ -44,13 +44,29 @@ The analysis is organized in stages, each as a sub-package under `src/bcu_analys
    scenario defined in `od_generation/config/demand_parameters.csv`, writing columns
    `origin_node, destination_node, category, count`.
 
-5. **road_usage/** —
+5. **`road_usage/`** — Generates the least-costly path on the network for each origin-destination pair, and assigns the
+   graph edges (road segments) 3 new metrics:
+   - `path_count` : Measures traffic demand on the network
+   - `usage_stress` (`path_count` * `max_lts`) : Highlights high-stress and high-use road segments
+   - `potential_Dbenefit` (`path_count` * (`cost`-`distance`)) : Quantifies the potential improvement if the given road
+     segment were to be improved (similar to `usage_stress` as high-stress & high-use roads would have a greater impact
+     compared to less-popular or less-stressful road segments, however potential improvement is more directly effected by
+     the length of the given road segment)
 
-6. **one_way_evaluation/** —
+6. **`one_way_evaluation/`** — For the set of origin-destination pairs, maps the most efficient path for trips in both
+   directions (ex. home→school and school→home) and highlights one-way road segments that cause disproportionately large
+   detours in one direction compared to the other. The one-way road segments are then scored based on the severity of the
+   detour and the frequency of affected trips
 
-7. **`corridor_analysis/`** — Isolates connected low-stress (LTS 1 & 2) "safe zones" into discrete islands and computes the highest-ROI missing link corridors to bridge them. Generates interactive PyDeck/Streamlit visualizations, updated GraphML networks, and GeoPackage (`.gpkg`) files for QGIS integration.
+7. **`corridor_analysis/`** — Isolates connected low-stress (LTS 1 & 2) "safe zones" into discrete islands and computes the
+   highest-ROI (highest return on investment) missing link corridors to bridge them. Generates interactive visualizations
+   (PyDeck/Streamlit), an updated scenario of the network if the corridor road segments were improved (GraphML format), and
+   GeoPackage (`.gpkg`) files for QGIS integration.
 
-8. **node_accessibility/** —
+8. **`node_accessibility/`** — Each node (or intersection) in the graph is given a rating corresponding to the ratio of the
+   current connectivity in the surrounding road network (considering the stress level ratings of the surrounding edges) and
+   the potential connectivity (if all road segments had a stress level rating of LTS 1). These ratings are also compared
+   with demographic information to investigate if there is a correlation between the two. 
 
 ## Getting Started
 
