@@ -87,22 +87,38 @@ The analysis is organized in stages, each as a sub-package under `src/bcu_analys
 
 ### Building the graph
 
-1. Run `python src/bcu_analysis/graph_builder/build_cost_graph.py COST_SCENARIO_ID REGION --data-dir FOLDER` 
+1. Run:
+   ```
+   python src/bcu_analysis/graph_builder/build_cost_graph.py COST_SCENARIO_ID REGION --data-dir FOLDER
+   ```
    - `COST_SCENARIO_ID` should be replaced with the specific ID number for the cost scenario of interest (please see
      `src/bcu_analysis/graph_builder/config/cost_parameters.csv` to view cost scenarios)
    - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, greater_boston)
    - `FOLDER` should be replaced with the path to the folder where the data will be stored 
+
 This will build the cost graph (with the specified cost scenario).
 
 ### Generating OD demand
 
-2. Run `python src/bcu_analysis/destination_csvs/csv_maker.py FOLDER REGION` followed by `python src/bcu_analysis/destination_csvs/combining_csvs.py FOLDER REGION`
+2. Run:
+   ```
+   python src/bcu_analysis/destination_csvs/csv_maker.py FOLDER REGION`
+   ````
+   followed by:
+   ```
+   python src/bcu_analysis/destination_csvs/combining_csvs.py FOLDER REGION
+   ```
    - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All). Note that the `csv_maker.py` script only processes 1 city
      at a time, so to generate destinations for all of Greater Boston, run the first command 4 times (once for each city) and then run the second command with region as All.
    - `FOLDER` should be replaced with the path to the folder where the data is stored
- This will generate a list of all destination points and their locations.
 
-3. Run `python bcu_analysis.census.run_census_assignment --region REGION --graph-path GRAPH_PATH --tract-path TRACT_PATH --output-directory OUTPUT_PATH --output-prefix OUTPUT_PREFIX`
+This will generate a list of all destination points and their locations.
+
+3. Run:
+   ```
+   python bcu_analysis.census.run_census_assignment --region REGION --graph-path GRAPH_PATH --tract-path TRACT_PATH --output-directory OUTPUT_PATH --output-prefix
+   OUTPUT_PREFIX
+   ```
       - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater-boston)
       - `GRAPH_PATH` should be your root directory + `/output/cost_scenarios/cost_scenario_#/REGION_cost_scenario_#_simplified.graphml` where the # is replaced with the ID
         number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
@@ -110,9 +126,13 @@ This will build the cost graph (with the specified cost scenario).
       - `OUTPUT_PATH` should be your root directory + `/census_results`
       - `OUTPUT_PREFIX` should be `REGION_cost_scenario_#` where the # is replaced with the ID number of the cost scenario of interest and REGION is replaced with the
         region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+
 This will assign population counts to each node in the cost graph (which represent origin points, or points where people are coming from)
 
-4. Run `python -u src/bcu_analysis/od_generation/generate_od_demand.py COST_SCENARIO_ID REGION --demand-scenario DEMAND_SCENARIO_ID --data-dir FOLDER --pop-geojson-path PATH`
+4. Run:
+   ```
+   python src/bcu_analysis/od_generation/generate_od_demand.py COST_SCENARIO_ID REGION --demand-scenario DEMAND_SCENARIO_ID --data-dir FOLDER --pop-geojson-path PATH
+   ```
    - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest 
    - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
    - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest (please see
@@ -120,9 +140,74 @@ This will assign population counts to each node in the cost graph (which represe
    - `FOLDER` should be replaced with the path to the folder where the data is stored
    - `PATH` should be your root directory (`FOLDER`) + `/census_results/REGION_cost_scenario_#_nodes_with_population_web.geojson` where the # is replaced with the ID
      number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+
 This will generate a list of origin-destination pairs that estimate starting and ending points of popular trips taken on the network. 
 
 ### Road Usage Analysis 
+
+1. Run:
+   ```
+   python src/bcu_analysis/road_usage/path_count.py FOLDER DEMAND_SCENARIO_ID COST_SCENARIO_ID REGION
+   ```
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest 
+   - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All)
+
+This will generate the least-cost route for each origin-destination pair and add a new attribute called `path_count` to the edges of the cost graph. `path_count` is the 
+number of least-cost paths that cross through a given edge.
+
+**WARNING:** If this file is throwing an error relating to cpu core count, it is likely related to the following code, which sets the value for the requested number of cpus 
+for multicore processing...
+   ```
+   requested_workers = int(
+            os.environ.get(
+                "SLURM_CPUS_PER_TASK"
+                os.cpu_count() or 1,
+            )
+        )
+   ```
+
+2. Run:
+   ```
+   python src/bcu_analysis/road_usage/metrics.py FOLDER DEMAND_SCENARIO_ID COST_SCENARIO_ID REGION
+   ```
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest 
+   - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All)
+
+This will add two attributes to the edges of the cost graph: `usage_stress` and `potential_Dbenefit` (please see the **`/road_usage/`** section under **Modules** for 
+further clarification). 
+
+3. (Optional) Run:
+   ```
+   python src/bcu_analysis/road_usage/Distributions.py FOLDER REGION DEMAND_SCENARIO_ID COST_SCENARIO_ID
+   ```
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+   - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All)
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest
+  
+This will report the 5-number summary (minimum, 1st quartile, median, 3rd quartile, and maximum) for the following edge attributes of the cost graph: `usage_stress`, 
+`potential_Dbenefit`, `path_count`, `distance`, `max_lts`, and `cost`. Optional flags to add to the command include:
+   - `--no_path_count` : If written, will not report on the `path_count` attribute 
+   - `--no_distance` : If written, will not report on the `distance` attribute 
+   - `--no_max_lts` : If written, will not report on the `max_lts` attribute 
+   - `--no_cost` : If written, will not report on the `cost` attribute 
+   - `--no_usage_stress` : If written, will not report on the `usage_stress` attribute 
+   - `--no_potential_Dbenefit` : If written, will not report on the `potential_Dbenefit` attribute 
+
+4. Run:
+   ```
+   python -u src/bcu_analysis/road_usage/svgs/HeatmapLog.py FOLDER REGION DEMAND_SCENARIO_ID COST_SCENARIO_ID ATTRIBUTE LOWER_THRESHOLD UPPER_THRESHOLD
+   ```
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+   - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All)
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest
+   
+    --onlyLTS3and4
 ### One-Way Analysis
 ### Running Corridor & Missing Link Analysis
 The corridor analysis can be run via the command-line script for batch GIS exports or explored interactively via the Streamlit dashboard.
