@@ -102,7 +102,7 @@ This will build the cost graph (with the specified cost scenario).
 
 2. Run:
    ```
-   python src/bcu_analysis/destination_csvs/csv_maker.py FOLDER REGION`
+   python src/bcu_analysis/destination_csvs/csv_maker.py FOLDER REGION
    ````
    followed by:
    ```
@@ -116,8 +116,7 @@ This will generate a list of all destination points and their locations.
 
 3. Run:
    ```
-   python bcu_analysis.census.run_census_assignment --region REGION --graph-path GRAPH_PATH --tract-path TRACT_PATH --output-directory OUTPUT_PATH --output-prefix
-   OUTPUT_PREFIX
+   python bcu_analysis.census.run_census_assignment --region REGION --graph-path GRAPH_PATH --tract-path TRACT_PATH --output-directory OUTPUT_PATH --output-prefix OUTPUT_PREFIX
    ```
       - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater-boston)
       - `GRAPH_PATH` should be your root directory + `/output/cost_scenarios/cost_scenario_#/REGION_cost_scenario_#_simplified.graphml` where the # is replaced with the ID
