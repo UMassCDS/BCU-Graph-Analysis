@@ -157,17 +157,6 @@ This will generate a list of origin-destination pairs that estimate starting and
 This will generate the least-cost route for each origin-destination pair and add a new attribute called `path_count` to the edges of the cost graph. `path_count` is the 
 number of least-cost paths that cross through a given edge.
 
-**WARNING:** If this file is throwing an error relating to cpu core count, it is likely related to the following code, which sets the value for the requested number of cpus 
-for multicore processing...
-   ```
-   requested_workers = int(
-            os.environ.get(
-                "SLURM_CPUS_PER_TASK"
-                os.cpu_count() or 1,
-            )
-        )
-   ```
-
 2. Run:
    ```
    python src/bcu_analysis/road_usage/metrics.py FOLDER DEMAND_SCENARIO_ID COST_SCENARIO_ID REGION
