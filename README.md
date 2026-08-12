@@ -1,6 +1,6 @@
 # BCU Graph Analysis
 
-Analysis of bicycle connectivity with regards to difficulty of use of the network and Level of Traffic Stress (LTS) for
+Analysis of bicycle connectivity and Level of Traffic Stress (LTS) for
 the Greater Boston area, built by the DS4CG Boston Cyclists Union Team.
 
 The project builds a routable street network graph from OpenStreetMap in which each
@@ -85,23 +85,45 @@ The analysis is organized in stages, each as a sub-package under `src/bcu_analys
 
 ## Running the Pipeline
 
-### Building the graph and destinations
+### Building the graph
 
-`graph_builder/main.py` and `destination_csvs/csv_maker.py` are run as scripts to
-build the cost graph and destination CSVs. These download from OSM/Overpass and
-cache intermediate files under the data root, so they are only re-run when the
-underlying inputs or LTS rules change.
+1. Run `python src/bcu_analysis/graph_builder/build_cost_graph.py COST_SCENARIO_ID REGION --data-dir FOLDER` 
+   - `COST_SCENARIO_ID` should be replaced with the specific ID number for the cost scenario of interest (please see
+     `src/bcu_analysis/graph_builder/config/cost_parameters.csv` to view cost scenarios)
+   - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, greater_boston)
+   - `FOLDER` should be replaced with the path to the folder where the data will be stored 
+This will build the cost graph (with the specified cost scenario).
 
 ### Generating OD demand
 
-```
-python src/bcu_analysis/od_generation/generate_od_demand.py --scenario-id 1
-```
+2. Run `python src/bcu_analysis/destination_csvs/csv_maker.py FOLDER REGION` followed by `python src/bcu_analysis/destination_csvs/combining_csvs.py FOLDER REGION`
+   - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All). Note that the `csv_maker.py` script only processes 1 city
+     at a time, so to generate destinations for all of Greater Boston, run the first command 4 times (once for each city) and then run the second command with region as All.
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+ This will generate a list of all destination points and their locations.
 
-Reads the per-category trip counts for the chosen scenario from
-`od_generation/config/demand_parameters.csv`, runs the LODES and POI generators, and
-writes the combined OD demand CSV consumed by the one-way analysis.
+3. Run `python bcu_analysis.census.run_census_assignment --region REGION --graph-path GRAPH_PATH --tract-path TRACT_PATH --output-directory OUTPUT_PATH --output-prefix OUTPUT_PREFIX`
+      - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater-boston)
+      - `GRAPH_PATH` should be your root directory + `/output/cost_scenarios/cost_scenario_#/REGION_cost_scenario_#_simplified.graphml` where the # is replaced with the ID
+        number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+      - `TRACT_PATH` should be your root directory + `/ma_tracts_population.geojson`
+      - `OUTPUT_PATH` should be your root directory + `/census_results`
+      - `OUTPUT_PREFIX` should be `REGION_cost_scenario_#` where the # is replaced with the ID number of the cost scenario of interest and REGION is replaced with the
+        region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+This will assign population counts to each node in the cost graph (which represent origin points, or points where people are coming from)
 
+4. Run `python -u src/bcu_analysis/od_generation/generate_od_demand.py COST_SCENARIO_ID REGION --demand-scenario DEMAND_SCENARIO_ID --data-dir FOLDER --pop-geojson-path PATH`
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest 
+   - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest (please see
+     `src/bcu_analysis/od_generation/config/demand_parameters.csv` to view demand scenarios)
+   - `FOLDER` should be replaced with the path to the folder where the data is stored
+   - `PATH` should be your root directory (`FOLDER`) + `/census_results/REGION_cost_scenario_#_nodes_with_population_web.geojson` where the # is replaced with the ID
+     number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+This will generate a list of origin-destination pairs that estimate starting and ending points of popular trips taken on the network. 
+
+### Road Usage Analysis 
+### One-Way Analysis
 ### Running Corridor & Missing Link Analysis
 The corridor analysis can be run via the command-line script for batch GIS exports or explored interactively via the Streamlit dashboard.
 
@@ -114,6 +136,7 @@ To view the streamlit dashboard:
 ```
 streamlit run src/bcu_analysis/corridor_analysis/dashboard.py
 ```
+### Node Accessibility Analysis 
 
 ## Directory Structure
 
