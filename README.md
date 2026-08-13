@@ -188,28 +188,64 @@ This will report the 5-number summary (minimum, 1st quartile, median, 3rd quarti
 
 4. Run:
    ```
-   python -u src/bcu_analysis/road_usage/svgs/HeatmapLog.py FOLDER REGION DEMAND_SCENARIO_ID COST_SCENARIO_ID ATTRIBUTE LOWER_THRESHOLD UPPER_THRESHOLD
+   python src/bcu_analysis/road_usage/svgs/HeatmapLog.py FOLDER REGION DEMAND_SCENARIO_ID COST_SCENARIO_ID ATTRIBUTE LOWER_THRESHOLD UPPER_THRESHOLD
    ```
    - `FOLDER` should be replaced with the path to the folder where the data is stored
    - `REGION` should be replaced with the region of interest (Boston, Brookline, Cambridge, Somerville, or All)
    - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
    - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest
-   
-    --onlyLTS3and4
-### One-Way Analysis
-### Running Corridor & Missing Link Analysis
-The corridor analysis can be run via the command-line script for batch GIS exports or explored interactively via the Streamlit dashboard.
+   - `ATTRIBUTE` should be replaced with the edge attribute of interest. The script will generate a heatmap of the road network using the edges' values of the specified attribute (`usage`, `usage_stress`, or `potential_improvement`)
+   - `LOWER_THRESHOLD` should be replaced with the desired lower bound for the log-color-scale. All edges with an attribute value below this number (but greater than 0) will be colored in yellow. 
+   - `UPPER_THRESHOLD` should be replaced with the desired upper bound for the log-color-scale. All edges with an attribute value above this number will be colored in red.
+  
+This will generate a heatmap of the road network where each road segment (or edge) is a different color. For each edge, the color is determined by its value of the specified attribute, and the color follows a log-color-scale with an upper and lower bound (all edges above the upper bound are colored red and all below are colored in yellow). An optional flag to include in the command is:
+   - `--onlyLTS3and4` : The heatmap will only color road segments that have a traffic stress-level rating of LTS 3 or LTS 4
 
-Run to generate (HTML maps, .gpkg, .graphml) via CLI:
+### One-Way Analysis
+
+Run:
 ```
-python src/bcu_analysis/corridor_analysis/run_corridors.py boston --data-dir ./data --output-dir ./outputs
-Note: You can replace boston with greater_boston(To view Boston, Cambridge, Somerville, and Brookline). Use the --help flag to adjust parameters like --min-island-size and --link-complexity.
+python src/bcu_analysis/one_way_evaluation/run_route_asymmetry.py COST_SCENARIO_ID REGION --demand-scenario DEMAND_SCENARIO_ID --data-dir FOLDER --workers WORKERS
 ```
-To view the streamlit dashboard:
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest
+   - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `FOLDER` should be replaced with the path to the folder where the data is stored (root directory)
+   - `WORKERS` should be replaced with the number of desired routing processes (default: all CPU cores)
+
+This will run the entire analysis, which scores one-way road segments based on the severity of the detours they cause and the frequency of affected trips. These scores are stored and outputted in a csv file, and could be visualized with a heatmap. 
+
+### Running Corridor & Missing Link Analysis
+
+Run: 
+```
+python src/bcu_analysis/corridor_analysis/run_corridors.py REGION --graph-dir GRAPH_PATH --poi-dir POI_PATH --output-dir OUTPUT_PATH --demand-scenario DEMAND_SCENARIO_ID --cost-scenario COST_SCENARIO_ID
+```
+   - `REGION` should be replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+   - `GRAPH_PATH` should be your root directory + `/processed/road_usage_analysis`
+   - `POI_PATH` should be your root directory + `processed/osm`
+   - `OUTPUT_PATH` should be your root directory + `/corridor_analysis`
+   - `DEMAND_SCENARIO_ID` should be replaced with the ID number for the demand scenario of interest
+   - `COST_SCENARIO_ID` should be replaced with the ID number for the cost scenario of interest
+
+This will run the entire analysis, computing missing link corridors between isolated low-stress islands in the network, and generate a series of output files (visualizations, graph scenarios with potential improvements on the network, and geo-based files). Note, please use the `--help` flag to adjust parameters like `--min-island-size` and `--link-complexity`.
+
+(Optional) To view the streamlit dashboard:
 ```
 streamlit run src/bcu_analysis/corridor_analysis/dashboard.py
 ```
 ### Node Accessibility Analysis 
+
+Run: 
+```
+python bcu_analysis.node_accessibility.run_all_nodes --graph-path GRAPH_PATH --progress-every PROGRESS --cost-field COST --cutoff-miles MILES --output-path OUTPUT_PATH --failure-path FAILURE_PATH
+```
+   - `GRAPH_PATH` should be your root directory + `/output/cost_scenarios/cost_scenario_#/REGION_cost_scenario_#_simplified.graphml` where the # is replaced with the ID number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
+   - `PROGRESS` should be replaced with a
+   - `COST`
+   - `MILES`
+   - `OUTPUT_PATH`
+   - `FAILURE_PATH` 
 
 ## Directory Structure
 
