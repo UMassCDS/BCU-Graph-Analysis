@@ -252,39 +252,22 @@ python bcu_analysis.node_accessibility.run_all_nodes --graph-path GRAPH_PATH --p
 ```
 .
 ├── src
-│   └── bcu_analysis                      # The importable Python package
-│       ├── graph_builder                 # Build the LTS-weighted cost graph from OSM
-│       │   ├── main.py                   #   Orchestrates the graph build
-│       │   ├── osm_download.py           #   Overpass/OSMnx download of tags and graph
-│       │   ├── assign_cost.py            #   cost = length × LTS stress multiplier
-│       │   ├── lts_functions.py          #   Level of Traffic Stress computation
-│       │   ├── config/                   #   LTS tables and OSM-tag parsing rules (yml)
-│       │   └── query/greater_boston.query
-│       ├── destination_csvs              # Overpass queries for destination POIs
-│       │   ├── csv_maker.py
-│       │   └── query/
-│       ├── census                        # Assign census population to graph nodes
-│       │   ├── build_census_tracts.py    #   Join TIGER geometry + ACS population
-│       │   ├── assignment.py             #   Area-weighted Voronoi allocation
-│       │   ├── run_census_assignment.py  #   Runner
-│       │   └── visualize_census_assignment.py
-│       └── od_generation                 # Origin–destination travel demand
-│           ├── generate_od_demand.py     #   Combine LODES + POI demand for a scenario
-│           ├── lodes_io.py / lodes_pairs.py / lodes_sampling.py   # LODES commutes
-│           ├── build_poi_od_pairs.py / poi_destination_choice.py  # POI trips
-│           └── config/demand_parameters.csv  
-│       └── corridor_analysis             # Missing link computation and visualization
-│              ├── run_corridors.py          #   CLI runner for batch processing and GIS export
-│              ├── dashboard.py              #   Interactive Streamlit dashboard
-│              ├── core_algorithms.py        #   Island detection and missing link logic
-│              └── export_utils.py           #   PyDeck rendering and file export utilities
-├── docs                                  # Documentation + Sphinx auto-doc setup
-│   └── census_assignment.md
-├── tests
-│   └── test_census_assignment.py
-├── pyproject.toml                        # Metadata, dependencies, build config
-├── CHANGELOG.md
-├── CONTRIBUTIONS.md
-├── LICENSE.md
-└── README.md                             # You are here
+│   └── bcu_analysis                  # The importable Python package
+│       ├── graph_builder             # Build the LTS-weighted cost graph from OSM
+│       │   ├── config                #   LTS tables and OSM-tag parsing rules (yml)
+│       │   └── query                 #   Overpass query for the region
+│       ├── destination_csvs          # Overpass queries for destination POIs
+│       ├── census                    # Assign census-tract population to graph nodes
+│       ├── od_generation             # Origin–destination travel demand
+│       │   └── config                #   Demand scenario parameters
+│       ├── corridor_analysis         # Low-stress islands and missing-link corridors
+│       ├── node_accessibility        # Per-node accessibility, sharding, and maps
+│       ├── one_way_evaluation        # Route asymmetry from one-way streets
+│       └── road_usage                # Path counts and usage metrics
+│           └── svgs                  #   Standalone plotting scripts
+├── docs                              # Documentation + Sphinx auto-doc setup
+├── jobs                              # Slurm job definitions for cluster runs
+├── scripts                           # Shell wrappers for running each analysis
+├── tests                             # Unit tests
+└── .github                           # Issue templates and CI workflows
 ```
