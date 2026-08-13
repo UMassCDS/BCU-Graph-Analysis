@@ -241,11 +241,13 @@ Run:
 python bcu_analysis.node_accessibility.run_all_nodes --graph-path GRAPH_PATH --progress-every PROGRESS --cost-field COST --cutoff-miles MILES --output-path OUTPUT_PATH --failure-path FAILURE_PATH
 ```
    - `GRAPH_PATH` should be your root directory + `/output/cost_scenarios/cost_scenario_#/REGION_cost_scenario_#_simplified.graphml` where the # is replaced with the ID number of the cost scenario of interest and REGION is replaced with the region of interest (boston, brookline, cambridge, somerville, or greater_boston)
-   - `PROGRESS` should be replaced with a
-   - `COST`
-   - `MILES`
-   - `OUTPUT_PATH`
-   - `FAILURE_PATH` 
+   - `PROGRESS` should be replaced with an integer x, so that for every x nodes the algorithm is run for, a progress statement is printed
+   - `COST` is the name of the `cost` edge attribute (this should always be "cost")
+   - `MILES` should be replaced with the maximum distance (in miles) that connectivity is measured for each node
+   - `OUTPUT_PATH` should be your root directory + `/greater_boston_cost_scenario_#_node_accessibility_MILESmi.csv` where the # is replaced with the ID number of the cost scenario of interest and MILES is replaced with your `MILES` parameter 
+   - `FAILURE_PATH` should be replaced with your root directory + `/greater_boston_cost_scenario_#_node_accessibility_MILESmi_failures.csv` where the # is replaced with the ID number of the cost scenario of interest and MILES is replaced with your `MILES` parameter
+
+This will run the entire analysis, scoring each node on its relative accessibility (a ratio of the current accessibility considering cost & stress level and the ideal accessibility just considering distance) and generating a series of visualizations. 
 
 ## Directory Structure
 
